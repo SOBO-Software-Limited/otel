@@ -192,7 +192,7 @@ void TestSimpleDoubleHistogram() {
     auto histogram_counter = Metrics::GetMeter()->CreateDoubleHistogram(name, "The Metric", "ds");
 
     auto context = opentelemetry::context::Context{};
-    for (uint32_t i = 0; i < 10; ++i) {
+    while(true) {
         double val = (rand() % 3);
         std::map<std::string, std::string> labels = test::get_random_attr();
         auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
@@ -313,12 +313,12 @@ namespace evm {
 
     zil::metrics::uint64Counter_t &GetInvocationsCounter() {
         static auto counter = Metrics::GetInstance().CreateInt64Metric(
-                "zilliqa.accounts", "invocations_count", "Metrics for AccountStore","calls");
+                "zilliqa.accounts", "invocations_count", "Metrics for AccountStore", "calls");
         return counter;
     }
 
     zil::metrics::doubleHistogram_t &GetHistogramCounter() {
-        static auto counter  = Metrics::GetMeter()->CreateDoubleHistogram("zilliqa.accounts", "The Histo Metric", "ms");
+        static auto counter = Metrics::GetMeter()->CreateDoubleHistogram("zilliqa.accounts", "The Histo Metric", "ms");
         return counter;
     }
 
@@ -326,30 +326,49 @@ namespace evm {
 
 
 bool
-TenSecondFunc(){
-    CALLS_LATENCY_MARKER(evm::GetInvocationsCounter(), evm::GetHistogramCounter(), zil::metrics::FilterClass::ACCOUNTSTORE_EVM);
+TenSecondFunc() {
+    CALLS_LATENCY_MARKER(evm::GetInvocationsCounter(), evm::GetHistogramCounter(),
+                         zil::metrics::FilterClass::ACCOUNTSTORE_EVM);
     std::this_thread::sleep_for(std::chrono::seconds(10));
     return true;
 }
 
 
 void
-TestIncrementingHistogram(){
-    for (double i = 0 ; i < 10000; i++) {
+TestIncrementingHistogram() {
+    for (double i = 0; i < 10000; i++) {
         auto context = opentelemetry::context::Context{};
         TRACE_ATTRIBUTE counter_attr = {{"method", "test"}};
         evm::GetHistogramCounter()->Record(i, counter_attr, context);
     }
 }
 
+void TestHistogramsOnAllProviders() {
+
+    TestSimpleDoubleHistogram();
+
+    for (
+            int i = 0;
+            i < 1000; i++) {
+        std::cout << "Sleeping to make sure the is no more activity" <<
+                  std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000)
+        );
+    }
+
+}
+
+
 int main() {
     Metrics::GetInstance();
     Tracing::GetInstance();
 
+    TestHistogramsOnAllProviders();
+
     auto span = START_SPAN(ACC_EVM, {});
     SCOPED_SPAN(ACC_EVM, scope, span);
 
-    std::list<double> list{0, 2 , 4 , 6 , 8, 10, 20, 30, 40};
+    std::list<double> list{0, 2, 4, 6, 8, 10, 20, 30, 40};
     std::string hname{"view for histogram"};
 
     Metrics::GetInstance().AddCounterHistogramView("zilliqa.accounts", list, hname);
@@ -366,7 +385,8 @@ int main() {
 
     TestSimpleDoubleHistogram();
 
-    Metrics::GetInstance().CaptureEMT(span,zil::metrics::FilterClass::ACCOUNTSTORE_EVM,zil::trace::FilterClass::ACC_EVM,evm::GetInvocationsCounter(),"It only works");
+    Metrics::GetInstance().CaptureEMT(span, zil::metrics::FilterClass::ACCOUNTSTORE_EVM,
+                                      zil::trace::FilterClass::ACC_EVM, evm::GetInvocationsCounter(), "It only works");
 
     span->End();
 

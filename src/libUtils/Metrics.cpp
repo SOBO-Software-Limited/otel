@@ -29,6 +29,8 @@
 #include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_factory.h"
+#include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
 
 #include "Tracing.h"
 
@@ -43,11 +45,13 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 Metrics::Metrics() { Init(); }
 
 namespace {
-    const std::string METRIC_ZILLIQA_PROVIDER{"PROMETHEUS"};
+    const std::string METRIC_ZILLIQA_PROVIDER{"OTLPHTTP"};
     const uint64_t METRIC_ZILLIQA_READER_EXPORT_MS{1000};
     const uint64_t METRIC_ZILLIQA_READER_TIMEOUT_MS{500};
     const std::string METRIC_ZILLIQA_HOSTNAME{"localhost"};
     const int METRIC_ZILLIQA_PORT{4318};
+    const int METRIC_ZILLIQA_GRPC_PORT{4317};
+    const std::string METRIC_ZILLIQA_GRPC_HOST{"0.0.0.0"};
     const std::string METRIC_ZILLIQA_PROMETHEUS_PORT{"8090"};
     const std::string METRIC_ZILLIQA_SCHEMA_VERSION{"1.2.0"};
     const std::string METRIC_ZILLIQA_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
@@ -67,11 +71,12 @@ void Metrics::Init() {
 
 
     if (cmp == "PROMETHEUS") {
-
         InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" + METRIC_ZILLIQA_PROMETHEUS_PORT);
 
     } else if (cmp == "OTLPHTTP") {
         InitOTHTTP();
+    } else if (cmp == "OTLPGRPC") {
+        InitOtlpGrpc();
     } else {
         InitStdOut();  // our favourite
     }
@@ -180,13 +185,16 @@ void Metrics::InitOTHTTP() {
     otlp_exporter::OtlpHttpMetricExporterOptions options;
     if (!addr.empty()) {
         options.url = "http://" + addr + "/v1/metrics";
+        options.console_debug = true;
+        options.content_type = opentelemetry::exporter::otlp::HttpRequestContentType::kJson;
+        options.aggregation_temporality = opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
     }
     std::unique_ptr<metrics_sdk::PushMetricExporter> exporter = otlp_exporter::OtlpHttpMetricExporterFactory::Create(
             options);
 
     opentelemetry::sdk::resource::ResourceAttributes attributes = {{"service.name", "zilliqa-daemon"},
                                                                    {"version",      (double) METRICS_VERSION}};
-    auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
+    auto resource = opentelemetry::sdk::resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
 
     opts.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
     opts.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
@@ -195,6 +203,33 @@ void Metrics::InitOTHTTP() {
     auto provider = std::shared_ptr<metrics_api::MeterProvider>(new metrics_sdk::MeterProvider(
             std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(new opentelemetry::sdk::metrics::ViewRegistry()),
             resource));
+    auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
+    p->AddMetricReader(std::move(reader));
+    metrics_api::Provider::SetMeterProvider(p);
+}
+
+void Metrics::InitOtlpGrpc() {
+    otlp_exporter::OtlpGrpcMetricExporterOptions options;
+    metrics_sdk::PeriodicExportingMetricReaderOptions opts;
+    std::string addr{std::string(METRIC_ZILLIQA_GRPC_HOST) + ":" + std::to_string(METRIC_ZILLIQA_GRPC_PORT)};
+
+    opentelemetry::sdk::resource::ResourceAttributes attributes = {{"service.name", "zilliqa-daemon"},
+                                                                   {"version",      (double) METRICS_VERSION}};
+    auto resource = opentelemetry::sdk::resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
+
+    opts.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+    opts.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
+
+    options.endpoint = addr;
+    options.aggregation_temporality = opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
+
+    auto exporter = otlp_exporter::OtlpGrpcMetricExporterFactory::Create(options);
+    std::unique_ptr<metrics_sdk::MetricReader> reader{
+            new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter), opts)};
+    auto provider = std::shared_ptr<metrics_api::MeterProvider>(new metrics_sdk::MeterProvider(
+            std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(new opentelemetry::sdk::metrics::ViewRegistry()),
+            resource));
+
     auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
     p->AddMetricReader(std::move(reader));
     metrics_api::Provider::SetMeterProvider(p);

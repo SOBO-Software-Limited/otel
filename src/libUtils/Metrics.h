@@ -259,7 +259,7 @@ private:
     void InitPrometheus(const std::string &addr);
 
     void InitOTHTTP();
-
+    void InitOtlpGrpc();
     void InitStdOut();
 
     std::unique_ptr<opentelemetry::sdk::metrics::MetricReader> GetReader();

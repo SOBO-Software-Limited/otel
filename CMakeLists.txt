@@ -15,7 +15,9 @@ add_compile_options(-Wextra)
 find_package(CURL REQUIRED)
 find_package(opentelemetry-cpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(protobuf REQUIRED)
+find_package(protobuf CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+find_package(re2 CONFIG REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -41,8 +43,11 @@ target_link_libraries(otel
         opentelemetry-cpp::ostream_span_exporter
         opentelemetry-cpp::ostream_metrics_exporter
         opentelemetry-cpp::otlp_http_metric_exporter
+        opentelemetry-cpp::otlp_grpc_metrics_exporter
         opentelemetry-cpp::otlp_http_exporter
+        opentelemetry-cpp::otlp_grpc_exporter
         opentelemetry-cpp::opentelemetry_exporter_prometheus
+        gRPC::grpc++
         )
 
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
