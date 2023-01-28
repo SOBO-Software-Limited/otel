@@ -95,8 +95,9 @@ namespace zil {
             public:
                 template<class T>
                 void Set(T value, const common::KeyValueIterable &attributes) {
+#if TESTING  // TODO : warn to logger
                     static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
-
+#endif
                     if constexpr (std::is_integral_v<T>) {
                         // This looks like a bug in openTelemetry, need to investigate, clash
                         // between uint64_t and long int should be unsigned, losing precision.
@@ -157,15 +158,14 @@ namespace zil {
             // for ctor.
             friend Metrics;
 
-            Observable(zil::metrics::FilterClass filter, observable_t ob)
-                    : m_filter(filter), m_observable(std::move(ob)) {
+            Observable(observable_t ob)
+                    : m_observable(std::move(ob)) {
                 assert(m_observable);
             }
 
             static void RawCallback(
                     opentelemetry::metrics::ObserverResult observer_result, void *state);
 
-            zil::metrics::FilterClass m_filter;
             observable_t m_observable;
             Callback m_callback;
         };
@@ -184,56 +184,30 @@ public:
 
     std::string Version() { return "Initial"; }
 
-    zil::metrics::uint64Counter_t CreateInt64Metric(const std::string &family,
-                                                    const std::string &name,
-                                                    const std::string &desc,
-                                                    std::string unit = "");
+    zil::metrics::uint64Counter_t
+    CreateInt64Metric(const std::string &name, const std::string &desc, std::string unit = "");
 
-    zil::metrics::doubleCounter_t CreateDoubleMetric(const std::string &family,
-                                                     const std::string &name,
-                                                     const std::string &desc,
-                                                     std::string unit = "");
+    zil::metrics::doubleCounter_t
+    CreateDoubleMetric(const std::string &name, const std::string &desc, std::string unit = "");
 
-    zil::metrics::uint64Historgram_t CreateUInt64Histogram(
-            const std::string &family, const std::string &name,
-            const std::string &desc, std::string unit = "");
+    zil::metrics::doubleHistogram_t
+    CreateDoubleHistogram(const std::string &name, const std::string &desc, std::string unit = "");
 
-    zil::metrics::doubleHistogram_t CreateDoubleHistogram(
-            const std::string &family, const std::string &name,
-            const std::string &desc, std::string unit = "");
+    zil::metrics::Observable CreateInt64Gauge(const std::string &name, const std::string &desc, std::string unit = "");
 
+    zil::metrics::Observable CreateDoubleGauge(const std::string &name, const std::string &desc, std::string unit = "");
 
-    zil::metrics::Observable CreateInt64UpDownMetric(
-            zil::metrics::FilterClass filter, const std::string &family,
-            const std::string &name, const std::string &desc,
-            std::string unit = "");
+    zil::metrics::Observable
+    CreateInt64UpDownMetric(const std::string &name, const std::string &desc, std::string unit = "");
 
-    zil::metrics::Observable CreateInt64Gauge(zil::metrics::FilterClass filter,
-                                              const std::string &family,
-                                              const std::string &name,
-                                              const std::string &desc,
-                                              std::string unit = "");
+    zil::metrics::Observable
+    CreateDoubleUpDownMetric(const std::string &name, const std::string &desc, std::string unit = "");
 
-    zil::metrics::Observable CreateDoubleUpDownMetric(
-            zil::metrics::FilterClass filter, const std::string &family,
-            const std::string &name, const std::string &desc,
-            std::string unit = "");
+    zil::metrics::Observable
+    CreateInt64ObservableCounter(const std::string &name, const std::string &desc, std::string unit = "");
 
-    zil::metrics::Observable CreateDoubleGauge(zil::metrics::FilterClass filter,
-                                               const std::string &family,
-                                               const std::string &name,
-                                               const std::string &desc,
-                                               std::string unit = "");
-
-    zil::metrics::Observable CreateInt64ObservableCounter(
-            zil::metrics::FilterClass filter, const std::string &family,
-            const std::string &name, const std::string &desc,
-            std::string unit = "");
-
-    zil::metrics::Observable CreateDoubleObservableCounter(
-            zil::metrics::FilterClass filter, const std::string &family,
-            const std::string &name, const std::string &desc,
-            std::string unit = "");
+    zil::metrics::Observable
+    CreateDoubleObservableCounter(const std::string &name, const std::string &desc, std::string unit = "");
 
     /// Called on main() exit explicitly
     void Shutdown();
@@ -252,13 +226,13 @@ public:
     static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 
     struct LatencyScopeMarker final {
-        LatencyScopeMarker(zil::metrics::uint64Counter_t& metric,
-                    zil::metrics::doubleHistogram_t& latency,
-                    zil::metrics::FilterClass fc,
-                    const char *file,
-                    int line,
-                    const char *func,
-                    bool should_print = true);
+        LatencyScopeMarker(zil::metrics::uint64Counter_t &metric,
+                           zil::metrics::doubleHistogram_t &latency,
+                           zil::metrics::FilterClass fc,
+                           const char *file,
+                           int line,
+                           const char *func,
+                           bool should_print = true);
 
         ~LatencyScopeMarker();
 
@@ -267,7 +241,7 @@ public:
         int m_line;
         std::string m_func;
         bool should_print;
-        zil::metrics::uint64Counter_t   &m_metric;
+        zil::metrics::uint64Counter_t &m_metric;
         zil::metrics::doubleHistogram_t &m_latency;
         zil::metrics::FilterClass &m_filterClass;
         std::chrono::system_clock::time_point m_startTime;
@@ -283,11 +257,12 @@ private:
     void InitPrometheus(const std::string &addr);
 
     void InitOTHTTP();
+
     void InitOtlpGrpc();
+
     void InitStdOut();
 
     std::unique_ptr<opentelemetry::sdk::metrics::MetricReader> GetReader();
-
 };
 
 #define INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE) \
@@ -381,7 +356,7 @@ namespace zil {
         public:
 
             DoubleHistogram(const std::string &name,
-                            std::list<double> boundaries,
+                            const std::list<double> &boundaries,
                             const std::string &description,
                             const std::string &units)
                     : m_boundaries(boundaries) {
@@ -403,63 +378,178 @@ namespace zil {
                 m_theCounter->Record(val, attr, context);
             }
 
-
         private:
             std::list<double> m_boundaries;
             doubleHistogram_t m_theCounter;
         };
 
+        class DoubleGauge {
+        public:
+
+            DoubleGauge(const std::string &name,
+                        const std::string &description,
+                        const std::string &units,
+                        bool obs)
+                    : m_theGauge(
+                    Metrics::GetInstance().CreateDoubleGauge(zil::metrics::GetFullName(METRIC_FAMILY, name),
+                                                             description, units)) {
+            }
+
+            using Callback = std::function<void(Observable::Result &&result)>;
+
+            void SetCallback(const Callback &cb) {
+                m_theGauge.SetCallback(cb);
+            }
+
+        private:
+            zil::metrics::Observable m_theGauge;
+        };
+
+        class I64Gauge {
+        public:
+
+            I64Gauge(const std::string &name,
+                     const std::string &description,
+                     const std::string &units,
+                     bool obs)
+                    : m_theGauge(
+                    Metrics::GetInstance().CreateInt64Gauge(GetFullName(METRIC_FAMILY, name), description,
+                                                            units)) {
+            }
+
+            using Callback = std::function<void(Observable::Result &&result)>;
+
+            void SetCallback(const Callback &cb) {
+                m_theGauge.SetCallback(cb);
+            }
+
+        private:
+            zil::metrics::Observable m_theGauge;
+        };
+
+        class I64UpDown {
+        public:
+            I64UpDown(const std::string &name,
+                      const std::string &description,
+                      const std::string &units,
+                      bool obs)
+                    : m_theGauge(
+                    Metrics::GetInstance().CreateInt64UpDownMetric(GetFullName(METRIC_FAMILY, name), description,
+                                                                   units)) {
+            }
+
+            using Callback = std::function<void(Observable::Result &&result)>;
+
+            void SetCallback(const Callback &cb) {
+                m_theGauge.SetCallback(cb);
+            }
+
+        private:
+            zil::metrics::Observable m_theGauge;
+        };
+
+        class DoubleUpDown {
+        public:
+            DoubleUpDown(const std::string &name,
+                         const std::string &description,
+                         const std::string &units,
+                         bool obs)
+                    : m_theGauge(
+                    Metrics::GetInstance().CreateDoubleUpDownMetric(GetFullName(METRIC_FAMILY, name), description,
+                                                                    units)) {
+            }
+
+            using Callback = std::function<void(Observable::Result &&result)>;
+
+            void SetCallback(const Callback &cb) {
+                m_theGauge.SetCallback(cb);
+            }
+
+        private:
+            zil::metrics::Observable m_theGauge;
+        };
+
         template<typename T>
         struct InstrumentWrapper : T {
-            InstrumentWrapper(const std::string &name, const std::string &description, const std::string &units)
+            InstrumentWrapper(zil::metrics::FilterClass fc, const std::string &name, const std::string &description,
+                              const std::string &units)
                     : T(name, description, units) {
+                m_fc = fc;
             }
 
             // Special for the histogram.
 
-            InstrumentWrapper(const std::string &name, std::list<double> list, const std::string &description,
+            InstrumentWrapper(zil::metrics::FilterClass fc, const std::string &name, const std::list<double> &list,
+                              const std::string &description,
                               const std::string &units)
                     : T(name, list, description, units) {
+                m_fc = fc;
+            }
+
+            InstrumentWrapper(zil::metrics::FilterClass fc,
+                              const std::string &name,
+                              const std::string &description,
+                              const std::string &units,
+                              bool obs)
+                    : T(name, description, units, obs) {
+                m_fc = fc;
             }
 
             InstrumentWrapper &operator++() {
-                T::Increment();
+                if (Filter::GetInstance().Enabled(m_fc)) {
+                    T::Increment();
+                }
                 return *this;
             }
 
             // Prefix increment operator.
             InstrumentWrapper &operator++(int) {
-                T::Increment();
+                if (Filter::GetInstance().Enabled(m_fc)) {
+                    T::Increment();
+                }
                 return *this;
             }
 
             // Declare prefix and postfix decrement operators.
             InstrumentWrapper &operator--() {
-                T::Decrement();
+                if (Filter::GetInstance().Enabled(m_fc)) {
+                    T::Decrement();
+                }
                 return *this;
             }     // Prefix d
 
             // decrement operator.
             InstrumentWrapper operator--(int) {
                 InstrumentWrapper temp = *this;
-                T::Decrement();
+                if (Filter::GetInstance().Enabled(m_fc)) {
+                    T::Decrement();
+                }
                 --*this;
                 return temp;
             }
 
             void IncrementAttr(METRIC_ATTRIBUTE attr) {
-                T::IncrementWithAttributes(1, attr);
+                if (Filter::GetInstance().Enabled(m_fc)) {
+                    T::IncrementWithAttributes(1, attr);
+                }
             }
 
             void Increment(size_t steps) {
-                while (steps--)
-                    T::Increment();
+                if (Filter::GetInstance().Enabled(m_fc)) {
+                    while (steps--)
+                        T::Increment();
+                }
             }
 
             void Decrement(size_t steps) {
-                while (steps--)
-                    T::Assign();
+                if (Filter::GetInstance().Enabled(m_fc)) {
+                    while (steps--)
+                        T::Assign();
+                }
             }
+
+        private:
+            zil::metrics::FilterClass m_fc;
         };
     } // evm
 } // observability

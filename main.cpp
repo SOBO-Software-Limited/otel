@@ -313,8 +313,8 @@ void TestSimpleUint64ObservableCounterLamda() {
 namespace evm {
 
     zil::metrics::uint64Counter_t &GetInvocationsCounter() {
-        static auto counter = Metrics::GetInstance().CreateInt64Metric(
-                "zilliqa.accounts", "invocations_count", "Metrics for AccountStore", "calls");
+        static auto counter = Metrics::GetInstance().CreateInt64Metric("evm.invocations.count",
+                                                                       "Metrics for AccountStore", "calls");
         return counter;
     }
 
@@ -369,13 +369,63 @@ using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
 void
 TestNewWrappers() {
-    zil::metrics::InstrumentWrapper<zil::metrics::I64Counter> iCounter("counter1", "the first counter", "seconds");
-    zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter> dCounter("counter2", "the Second counter", "seconds");
-    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram> dHistogram("histo1", {1, 2, 3, 4, 5, 6, 7, 8, 9},
-                                                                              "the first Histogram counter", "seconds");
-    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram> sHistogram("histo2", {1, 2, 3, 4, 5, 6, 7, 8, 9},
-                                                                              "the second Histogram counter",
-                                                                              "seconds");
+
+    std::list<double> boundary{1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0};
+
+    zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>
+            iCounter(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "counter1", "the first counter", "seconds");
+
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>
+            dCounter(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "counter2", "the Second counter", "seconds");
+
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>
+            dHistogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "histo1", boundary, "the first Histogram counter",
+                       "seconds");
+
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>
+            sHistogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "histo2", boundary, "the second Histogram counter",
+                       "seconds");
+
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleGauge>
+            dGauge(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "gauge1", "My very first gauge", "seconds", true);
+
+    zil::metrics::InstrumentWrapper<zil::metrics::I64Gauge>
+            i64Gauge(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "i64gauge1", "My very first i64gauge", "minutes",
+                     true);
+
+    zil::metrics::InstrumentWrapper<zil::metrics::I64UpDown>
+            i64upAndDown(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "upAndDown", "My very first updown", "flips",
+                         true);
+
+    zil::metrics::InstrumentWrapper<zil::metrics::I64UpDown>
+            i64downAndUp(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "DownandUp", "My very first downup", "flops",
+                         true);
+
+    dGauge.SetCallback([](auto &&result) {
+        std::cout << "Holds double data" << std::endl;
+        result.Set(87654.0, {{"counter", "BlockNumber"}});
+        result.Set(12345.5, {{"counter", "DSBlockNumber"}});
+    });
+
+
+    i64Gauge.SetCallback([](auto &&result) {
+        std::cout << "Holds i64 data" << std::endl;
+        result.Set(87654, {{"counter", "BlockNumber"}});
+        result.Set(12345, {{"counter", "DSBlockNumber"}});
+    });
+
+    const auto lambda = [](auto &&result) {
+
+        // do any you like in here
+
+        std::cout << "hello world" << std::endl;
+
+        result.Set(666, {{}});
+
+    };
+
+
+    i64upAndDown.SetCallback(lambda);
 
     int i = 1;
 
@@ -384,8 +434,7 @@ TestNewWrappers() {
         dCounter++;
         dHistogram.Record((i++ % 9));
         dHistogram.Record(((double) (rand() % 9)), {{"counter", i}});
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
 }
 
