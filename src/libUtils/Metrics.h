@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBUTILS_METRICS_H_
 
 #include <cassert>
+#include <variant>
 
 #include "common/MetricFilters.h"
 #include "common/Singleton.h"
@@ -30,6 +31,9 @@
 #include "opentelemetry/sdk/resource/resource.h"
 #include "opentelemetry/metrics/provider.h"
 #include "opentelemetry/sdk/metrics/metric_reader.h"
+#include <opentelemetry/sdk/metrics/view/view.h>
+#include "opentelemetry/common/key_value_iterable.h"
+#include "opentelemetry/common/attribute_value.h"
 #include "common/TraceFilters.h"
 
 class Metrics;
@@ -43,16 +47,35 @@ namespace zil {
 
         std::chrono::system_clock::time_point r_timer_start();
 
-
         double r_timer_end(std::chrono::system_clock::time_point start_time);
 
         namespace common = opentelemetry::common;
         namespace metrics_api = opentelemetry::metrics;
 
+        const std::string METRIC_FAMILY{"zilliqa"};
+        const std::string METRIC_SCHEMA_VERSION{"1.2.0"};
+        const std::string METRIC_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
+
         using uint64Counter_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
         using doubleCounter_t = std::unique_ptr<metrics_api::Counter<double>>;
+
         using uint64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
         using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
+
+        inline auto GetMeter(
+                std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider, const std::string &family) {
+            return provider->GetMeter(family, METRIC_SCHEMA_VERSION, METRIC_SCHEMA);
+        }
+
+        inline std::string GetFullName(const std::string &family,
+                                       const std::string &name) {
+            std::string full_name;
+            full_name.reserve(family.size() + name.size() + 1);
+            full_name += family;
+            full_name += "_";
+            full_name += name;
+            return full_name;
+        }
 
         class Filter : public Singleton<Filter> {
         public:
@@ -179,6 +202,7 @@ public:
             const std::string &family, const std::string &name,
             const std::string &desc, std::string unit = "");
 
+
     zil::metrics::Observable CreateInt64UpDownMetric(
             zil::metrics::FilterClass filter, const std::string &family,
             const std::string &name, const std::string &desc,
@@ -216,7 +240,7 @@ public:
 
     void AddCounterSumView(const std::string &name, const std::string &description);
 
-    void AddCounterHistogramView(const std::string &name, std::list<double> &list, std::string &description);
+    void AddCounterHistogramView(const std::string name, std::list<double> list, const std::string &description);
 
     bool CaptureEMT(std::shared_ptr<opentelemetry::trace::Span> &span,
                     zil::metrics::FilterClass fc,
@@ -294,6 +318,151 @@ private:
           zil::metrics::FilterClass::FILTER_CLASS)) {                  \
     COUNTER->Add(1, {{"Method", METHOD}});                             \
   }
+
+namespace zil {
+    namespace metrics {
+
+        using METRIC_ATTRIBUTE =
+                std::map<std::string, opentelemetry::common::AttributeValue>;
+
+        // Wrap an integer Counter
+
+        class I64Counter {
+        public:
+            I64Counter(const std::string &name, const std::string &description, const std::string &units) {
+                m_theCounter = Metrics::GetMeter()->CreateUInt64Counter(GetFullName(METRIC_FAMILY, name), description,
+                                                                        units);
+            }
+
+            void
+            Increment() {
+                m_theCounter->Add(1);
+            }
+
+            void
+            IncrementWithAttributes(long val, METRIC_ATTRIBUTE &attr) {
+                m_theCounter->Add(val, attr);
+            }
+
+            virtual ~I64Counter() {}
+
+            friend std::ostream &operator<<(std::ostream &os, const I64Counter &counter);
+
+        private:
+            uint64Counter_t m_theCounter;
+        };
+
+        // wrap a double counter
+
+        class DoubleCounter {
+        public:
+            DoubleCounter(const std::string &name, const std::string &description, const std::string &units) {
+                m_theCounter = Metrics::GetMeter()->CreateDoubleCounter(GetFullName(METRIC_FAMILY, name), description,
+                                                                        units);
+            }
+
+            void
+            Increment() {
+                m_theCounter->Add(1);
+            }
+
+            void
+            IncrementWithAttributes(long val, METRIC_ATTRIBUTE &attr) {
+                m_theCounter->Add(val, attr);
+            }
+
+        private:
+            doubleCounter_t m_theCounter;
+        };
+
+        // wrap a histogram
+
+        class DoubleHistogram {
+        public:
+
+            DoubleHistogram(const std::string &name,
+                            std::list<double> boundaries,
+                            const std::string &description,
+                            const std::string &units)
+                    : m_boundaries(boundaries) {
+                Metrics::GetInstance().AddCounterHistogramView(GetFullName(METRIC_FAMILY, name), boundaries,
+                                                               description);
+                m_theCounter = Metrics::GetMeter()->CreateDoubleHistogram(GetFullName(METRIC_FAMILY, name), description,
+                                                                          units);
+            }
+
+            void
+            Record(double val) {
+                auto context = opentelemetry::context::Context{};
+                m_theCounter->Record(val, context);
+            }
+
+            void
+            Record(double val, const METRIC_ATTRIBUTE &attr) {
+                auto context = opentelemetry::context::Context{};
+                m_theCounter->Record(val, attr, context);
+            }
+
+
+        private:
+            std::list<double> m_boundaries;
+            doubleHistogram_t m_theCounter;
+        };
+
+        template<typename T>
+        struct InstrumentWrapper : T {
+            InstrumentWrapper(const std::string &name, const std::string &description, const std::string &units)
+                    : T(name, description, units) {
+            }
+
+            // Special for the histogram.
+
+            InstrumentWrapper(const std::string &name, std::list<double> list, const std::string &description,
+                              const std::string &units)
+                    : T(name, list, description, units) {
+            }
+
+            InstrumentWrapper &operator++() {
+                T::Increment();
+                return *this;
+            }
+
+            // Prefix increment operator.
+            InstrumentWrapper &operator++(int) {
+                T::Increment();
+                return *this;
+            }
+
+            // Declare prefix and postfix decrement operators.
+            InstrumentWrapper &operator--() {
+                T::Decrement();
+                return *this;
+            }     // Prefix d
+
+            // decrement operator.
+            InstrumentWrapper operator--(int) {
+                InstrumentWrapper temp = *this;
+                T::Decrement();
+                --*this;
+                return temp;
+            }
+
+            void IncrementAttr(METRIC_ATTRIBUTE attr) {
+                T::IncrementWithAttributes(1, attr);
+            }
+
+            void Increment(size_t steps) {
+                while (steps--)
+                    T::Increment();
+            }
+
+            void Decrement(size_t steps) {
+                while (steps--)
+                    T::Assign();
+            }
+        };
+    } // evm
+} // observability
 
 #define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS) \
   Metrics::LatencyScopeMarker marker{COUNTER, LATENCY, FILTER_CLASS, __FILE__, __LINE__, __FUNCTION__};

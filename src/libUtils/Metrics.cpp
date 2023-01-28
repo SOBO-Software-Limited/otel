@@ -45,7 +45,7 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 Metrics::Metrics() { Init(); }
 
 namespace {
-    const std::string METRIC_ZILLIQA_PROVIDER{"OTLPHTTP"};
+    const std::string METRIC_ZILLIQA_PROVIDER{"STDOUT"};
     const uint64_t METRIC_ZILLIQA_READER_EXPORT_MS{1000};
     const uint64_t METRIC_ZILLIQA_READER_TIMEOUT_MS{500};
     const std::string METRIC_ZILLIQA_HOSTNAME{"localhost"};
@@ -301,7 +301,7 @@ namespace {
     inline auto GetMeter(
             std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
             const std::string &family) {
-        return provider->GetMeter(family, "1.2.0");
+        return provider->GetMeter(family, "1.2.0", "");
     }
 
     inline std::string GetFullName(const std::string &family,
@@ -403,8 +403,8 @@ Metrics::AddCounterSumView(const std::string &name, const std::string &descripti
 }
 
 void
-Metrics::AddCounterHistogramView(const std::string &name, std::list<double> &list,
-                                 std::string &description) {
+Metrics::AddCounterHistogramView(const std::string name, std::list<double> list,
+                                 const std::string &description) {
     // counter view
 
     std::unique_ptr<metrics_sdk::InstrumentSelector> histogram_instrument_selector{

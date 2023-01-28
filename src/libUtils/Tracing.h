@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+// A local version
+
 #ifndef ZILLIQA_SRC_LIBUTILS_TRACING_H_
 #define ZILLIQA_SRC_LIBUTILS_TRACING_H_
 
