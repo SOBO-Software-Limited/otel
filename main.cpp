@@ -195,6 +195,7 @@ void TestSimpleDoubleHistogram() {
     while(true) {
         double val = (rand() % 3);
         std::map<std::string, std::string> labels = test::get_random_attr();
+
         auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
         histogram_counter->Record(val, labelkv, context);
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -358,10 +359,42 @@ void TestHistogramsOnAllProviders() {
 
 }
 
+/*
+using uint64Counter_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
+using doubleCounter_t = std::unique_ptr<metrics_api::Counter<double>>;
+
+using uint64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
+using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
+*/
+
+void
+TestNewWrappers() {
+    zil::metrics::InstrumentWrapper<zil::metrics::I64Counter> iCounter("counter1", "the first counter", "seconds");
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter> dCounter("counter2", "the Second counter", "seconds");
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram> dHistogram("histo1", {1, 2, 3, 4, 5, 6, 7, 8, 9},
+                                                                              "the first Histogram counter", "seconds");
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram> sHistogram("histo2", {1, 2, 3, 4, 5, 6, 7, 8, 9},
+                                                                              "the second Histogram counter",
+                                                                              "seconds");
+
+    int i = 1;
+
+    while (1) {
+        iCounter++;
+        dCounter++;
+        dHistogram.Record((i++ % 9));
+        dHistogram.Record(((double) (rand() % 9)), {{"counter", i}});
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+}
+
 
 int main() {
     Metrics::GetInstance();
     Tracing::GetInstance();
+
+    TestNewWrappers();
 
     TestHistogramsOnAllProviders();
 
