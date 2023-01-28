@@ -316,73 +316,55 @@ namespace {
 
 }  // namespace
 
-zil::metrics::uint64Counter_t Metrics::CreateInt64Metric(
-        const std::string &family, const std::string &name, const std::string &desc,
-        std::string unit) {
-    return GetMeter()->CreateUInt64Counter(GetFullName(family, name), desc, unit);
+zil::metrics::uint64Counter_t
+Metrics::CreateInt64Metric(const std::string &name, const std::string &desc, std::string unit) {
+    return GetMeter()->CreateUInt64Counter(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::doubleCounter_t Metrics::CreateDoubleMetric(
-        const std::string &family, const std::string &name, const std::string &desc,
-        std::string unit) {
-    return GetMeter()->CreateDoubleCounter(GetFullName(family, name), desc, unit);
+zil::metrics::doubleCounter_t
+Metrics::CreateDoubleMetric(const std::string &name, const std::string &desc, std::string unit) {
+    return GetMeter()->CreateDoubleCounter(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateInt64UpDownMetric(
-        zil::metrics::FilterClass filter, const std::string &family,
-        const std::string &name, const std::string &desc, std::string unit) {
+zil::metrics::doubleHistogram_t
+Metrics::CreateDoubleHistogram(const std::string &name, const std::string &desc, std::string unit) {
+    return GetMeter()->CreateDoubleHistogram(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
+}
+
+zil::metrics::Observable
+Metrics::CreateInt64UpDownMetric(const std::string &name, const std::string &desc, std::string unit) {
     return zil::metrics::Observable(
-            filter, GetMeter()->CreateInt64ObservableUpDownCounter(GetFullName(family, name), desc, unit));
+            GetMeter()->CreateInt64ObservableUpDownCounter(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
-zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
-        zil::metrics::FilterClass filter, const std::string &family,
-        const std::string &name, const std::string &desc, std::string unit) {
+zil::metrics::Observable
+Metrics::CreateDoubleUpDownMetric(const std::string &name, const std::string &desc, std::string unit) {
     return zil::metrics::Observable(
-            filter, GetMeter()->CreateDoubleObservableUpDownCounter(GetFullName(family, name), desc, unit));
+            GetMeter()->CreateDoubleObservableUpDownCounter(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
-zil::metrics::Observable Metrics::CreateInt64Gauge(
-        zil::metrics::FilterClass filter, const std::string &family,
-        const std::string &name, const std::string &desc, std::string unit) {
+zil::metrics::Observable Metrics::CreateInt64Gauge(const std::string &name, const std::string &desc, std::string unit) {
     return zil::metrics::Observable(
-            filter,
-            GetMeter()->CreateInt64ObservableGauge(GetFullName(family, name), desc, unit));
+            GetMeter()->CreateInt64ObservableGauge(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
-zil::metrics::Observable Metrics::CreateDoubleGauge(
-        zil::metrics::FilterClass filter, const std::string &family,
-        const std::string &name, const std::string &desc, std::string unit) {
+zil::metrics::Observable
+Metrics::CreateDoubleGauge(const std::string &name, const std::string &desc, std::string unit) {
     return zil::metrics::Observable(
-            filter, GetMeter()->CreateDoubleObservableGauge(GetFullName(family, name), desc, unit));
+            GetMeter()->CreateDoubleObservableGauge(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
-zil::metrics::doubleHistogram_t Metrics::CreateDoubleHistogram(
-        const std::string &family, const std::string &name, const std::string &desc,
-        std::string unit) {
-    return GetMeter()->CreateDoubleHistogram(GetFullName(family, name), desc, unit);
-}
-
-zil::metrics::uint64Historgram_t Metrics::CreateUInt64Histogram(
-        const std::string &family, const std::string &name, const std::string &desc,
-        std::string unit) {
-    return GetMeter()->CreateUInt64Histogram(GetFullName(family, name), desc, unit);
-}
-
-zil::metrics::Observable Metrics::CreateInt64ObservableCounter(
-        zil::metrics::FilterClass filter, const std::string &family,
-        const std::string &name, const std::string &desc, std::string unit) {
+zil::metrics::Observable
+Metrics::CreateInt64ObservableCounter(const std::string &name, const std::string &desc, std::string unit) {
     return zil::metrics::Observable(
-            filter, GetMeter()->CreateInt64ObservableCounter(GetFullName(family, name), desc, unit));
+            GetMeter()->CreateInt64ObservableCounter(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
-zil::metrics::Observable Metrics::CreateDoubleObservableCounter(
-        zil::metrics::FilterClass filter, const std::string &family,
-        const std::string &name, const std::string &desc, std::string unit) {
+zil::metrics::Observable
+Metrics::CreateDoubleObservableCounter(const std::string &name, const std::string &desc, std::string unit) {
     return zil::metrics::Observable(
-            filter, GetMeter()->CreateDoubleObservableCounter(GetFullName(family, name), desc, unit));
+            GetMeter()->CreateDoubleObservableCounter(GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
-
 
 void
 Metrics::AddCounterSumView(const std::string &name, const std::string &description) {
@@ -498,10 +480,8 @@ namespace zil::metrics {
         assert(state);
         auto *self = static_cast<Observable *>(state);
 
-        if (Filter::GetInstance().Enabled(self->m_filter)) {
-            assert(self->m_callback);
-            self->m_callback(Result(observer_result));
-        }
+        assert(self->m_callback);
+        self->m_callback(Result(observer_result));
     }
 
     namespace {
