@@ -230,24 +230,19 @@ public:
                            zil::metrics::doubleHistogram_t &latency,
                            zil::metrics::FilterClass fc,
                            const char *file,
-                           int line,
-                           const char *func,
-                           bool should_print = true);
+                           const char *func
+                           );
 
         ~LatencyScopeMarker();
 
     private:
         std::string m_file;
-        int m_line;
         std::string m_func;
-        bool should_print;
         zil::metrics::uint64Counter_t &m_metric;
         zil::metrics::doubleHistogram_t &m_latency;
-        zil::metrics::FilterClass &m_filterClass;
+        zil::metrics::FilterClass m_filterClass;
         std::chrono::system_clock::time_point m_startTime;
-
         LatencyScopeMarker(const LatencyScopeMarker &) = delete;
-
         LatencyScopeMarker &operator=(const LatencyScopeMarker &) = delete;
     };
 
@@ -555,6 +550,6 @@ namespace zil {
 } // observability
 
 #define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS) \
-  Metrics::LatencyScopeMarker marker{COUNTER, LATENCY, FILTER_CLASS, __FILE__, __LINE__, __FUNCTION__};
+  Metrics::LatencyScopeMarker marker{COUNTER, LATENCY, FILTER_CLASS, __FILE__, __FUNCTION__};
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_

@@ -127,13 +127,9 @@ Metrics::LatencyScopeMarker::LatencyScopeMarker(zil::metrics::uint64Counter_t &m
                                                 zil::metrics::doubleHistogram_t &latency,
                                                 zil::metrics::FilterClass fc,
                                                 const char *file,
-                                                int line,
-                                                const char *func,
-                                                bool should_print)
+                                                const char *func)
         : m_file{file},
-          m_line{line},
           m_func{func},
-          should_print{should_print},
           m_metric(metric),
           m_latency(latency),
           m_filterClass(fc),

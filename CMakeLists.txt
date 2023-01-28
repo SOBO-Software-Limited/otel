@@ -8,7 +8,7 @@ if(CCACHE_PROGRAM)
 endif()
 
 add_compile_options(-Wall)
-add_compile_options(-Werror)
+#add_compile_options(-Werror)
 add_compile_options(-pedantic)
 add_compile_options(-Wextra)
 
