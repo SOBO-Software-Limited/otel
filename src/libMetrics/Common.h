@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,8 +15,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_COMMON_CONSTANTS_H_
-#define ZILLIQA_SRC_COMMON_CONSTANTS_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_COMMON_H_
+#define ZILLIQA_SRC_LIBMETRICS_COMMON_H_
 
+#include <string>
 
-#endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_
+namespace zil {
+namespace metrics {
+
+const std::string METRIC_FAMILY{"zilliqa"};
+const std::string METRIC_SCHEMA_VERSION{"1.2.0"};
+const std::string METRIC_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
+
+}  // namespace metrics
+}  // namespace zil
+
+#endif  // ZILLIQA_SRC_LIBMETRICS_COMMON_H_

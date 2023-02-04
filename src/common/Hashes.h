@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_COMMON_HASHES_H_
 #define ZILLIQA_SRC_COMMON_HASHES_H_
 
+
 #include "depends/common/FixedHash.h"
 
 using BlockHash = dev::h256;

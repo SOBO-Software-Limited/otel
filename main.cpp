@@ -6,16 +6,10 @@
 #include <thread>
 #include <vector>
 
-#include <opentelemetry/sdk/metrics/view/meter_selector.h>
-#include <opentelemetry/sdk/metrics/view/view.h>
-#include "opentelemetry/context/context.h"
-#include "opentelemetry/metrics/provider.h"
 
-#include "libUtils/Metrics.h"
-#include "libUtils/Tracing.h"
+#include "libMetrics/Api.h"
 
 namespace metrics_api = opentelemetry::metrics;
-namespace metrics_sdk = opentelemetry::sdk::metrics;
 namespace nostd = opentelemetry::nostd;
 namespace common = opentelemetry::common;
 
@@ -118,9 +112,6 @@ int main() {
 
     span->SetStatus(opentelemetry::trace::StatusCode::kOk, "We are all good here");
 
-
-    Metrics::GetInstance().CaptureEMT(span, zil::metrics::FilterClass::ACCOUNTSTORE_EVM,
-                                      zil::trace::FilterClass::ACC_EVM, evm::GetInvocationsCounter(), "It only works");
 
     span->End();
 
