@@ -17,6 +17,7 @@
 
 #include "Tracing.h"
 
+#include <opentelemetry/sdk/trace/tracer_context_factory.h>
 #include <boost/algorithm/string.hpp>
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
@@ -50,6 +51,34 @@ void Tracing::Init() {
   }
 }
 
+void InitTracer()
+{
+  auto exporter = opentelemetry::exporter::trace::OStreamSpanExporterFactory::Create();
+  auto processor =
+      opentelemetry::sdk::trace::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  std::vector<std::unique_ptr<opentelemetry::sdk::trace::SpanProcessor>> processors;
+  processors.push_back(std::move(processor));
+  // Default is an always-on sampler.
+  std::shared_ptr<opentelemetry::sdk::trace::TracerContext> context =
+      opentelemetry::sdk::trace::TracerContextFactory::Create(std::move(processors));
+  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
+      opentelemetry::sdk::trace::TracerProviderFactory::Create(context);
+  // Set the global trace provider
+  opentelemetry::trace::Provider::SetTracerProvider(provider);
+
+  // set global propagator
+  opentelemetry::context::propagation::GlobalTextMapPropagator::SetGlobalPropagator(
+      opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
+          new opentelemetry::trace::propagation::HttpTraceContext()));
+}
+
+void CleanupTracer()
+{
+  std::shared_ptr<opentelemetry::trace::TracerProvider> none;
+  opentelemetry::trace::Provider::SetTracerProvider(none);
+}
+
+
 void Tracing::OtlpHTTPInit() {
   opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts;
   std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" +
@@ -59,23 +88,27 @@ void Tracing::OtlpHTTPInit() {
   }
   resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
                                              {"version", (uint32_t)1}};
+
   auto resource = resource::Resource::Create(attributes);
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
-  auto processor =
-      trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  m_provider =
-      trace_sdk::TracerProviderFactory::Create(std::move(processor), resource);
-  // Set the global trace provider
-  trace_api::Provider::SetTracerProvider(m_provider);
+  auto processor =  opentelemetry::sdk::trace::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  std::vector<std::unique_ptr<opentelemetry::sdk::trace::SpanProcessor>> processors;
+  processors.push_back(std::move(processor));
+  // Default is an always-on sampler.
+  std::shared_ptr<opentelemetry::sdk::trace::TracerContext> context =
+      opentelemetry::sdk::trace::TracerContextFactory::Create(std::move(processors));
 
-  // Setup a prpogator
+  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
+      opentelemetry::sdk::trace::TracerProviderFactory::Create(context);
 
-  opentelemetry::context::propagation::GlobalTextMapPropagator::
-      SetGlobalPropagator(
-          opentelemetry::nostd::shared_ptr<
-              opentelemetry::context::propagation::TextMapPropagator>(
-              new opentelemetry::trace::propagation::HttpTraceContext()));
+  trace_api::Provider::SetTracerProvider(provider);
+
+  opentelemetry::context::propagation::GlobalTextMapPropagator::SetGlobalPropagator(
+      opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
+          new opentelemetry::trace::propagation::HttpTraceContext()));
+
+  m_provider = provider;
 }
 
 void Tracing::StdOutInit() {

@@ -7,6 +7,21 @@
 #include <vector>
 
 
+#include "opentelemetry/ext/http/client/http_client_factory.h"
+#include "opentelemetry/context/propagation/global_propagator.h"
+#include "opentelemetry/context/propagation/text_map_propagator.h"
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/nostd/shared_ptr.h"
+#include "opentelemetry/sdk/trace/simple_processor_factory.h"
+#include "opentelemetry/sdk/trace/tracer_context_factory.h"
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
+#include "opentelemetry/trace/provider.h"
+#include "opentelemetry/trace/context.h"
+#include "opentelemetry/trace/semantic_conventions.h"
+#include "opentelemetry/trace/span_context_kv_iterable_view.h"
+#include "opentelemetry/ext/http/client/http_client.h"
+
 #include "libMetrics/Api.h"
 
 namespace metrics_api = opentelemetry::metrics;
@@ -86,7 +101,6 @@ TestNewWrappers() {
 
     };
 
-
     i64upAndDown.SetCallback(lambda);
 
     int i = 1;
@@ -100,21 +114,101 @@ TestNewWrappers() {
     }
 }
 
+namespace context = opentelemetry::context;
+
+
+template <typename T>
+class ZilliqaMapCarrier : public opentelemetry::context::propagation::TextMapCarrier
+{
+   public:
+    ZilliqaMapCarrier(T &headers) : headers_(headers) {}
+    ZilliqaMapCarrier() = default;
+    virtual opentelemetry::nostd::string_view Get(
+        opentelemetry::nostd::string_view key) const noexcept override
+    {
+        std::string key_to_compare = key.data();
+        // Header's first letter seems to be  automatically capitaliazed by our test http-server, so
+        // compare accordingly.
+        if (key == opentelemetry::trace::propagation::kTraceParent)
+        {
+          key_to_compare = "Traceparent";
+        }
+        else if (key == opentelemetry::trace::propagation::kTraceState)
+        {
+          key_to_compare = "Tracestate";
+        }
+        auto it = headers_.find(key_to_compare);
+        if (it != headers_.end())
+        {
+          return it->second;
+        }
+        return "";
+    }
+
+    virtual void Set(opentelemetry::nostd::string_view key,
+                     opentelemetry::nostd::string_view value) noexcept override
+    {
+        headers_.insert(std::pair<std::string, std::string>(std::string(key), std::string(value)));
+    }
+
+    T headers_;
+};
+
 
 int main() {
     Metrics::GetInstance();
     Tracing::GetInstance();
 
+#if TEST_WRAPPERS
     TestNewWrappers();
+#endif
 
-    auto span = START_SPAN(ACC_EVM, {});
-    SCOPED_SPAN(ACC_EVM, scope, span);
+    auto Topspan = START_SPAN(ACC_EVM, {});
+    SCOPED_SPAN(ACC_EVM, Topscope, Topspan);
+
+    ZilliqaMapCarrier<std::map<std::string,std::string>>  ourCarrier{};
+
+    auto prop        = context::propagation::GlobalTextMapPropagator::GetGlobalPropagator();
+    auto current_ctx      = context::RuntimeContext::GetCurrent();
+    auto new_context      = prop->Extract(ourCarrier, current_ctx);
+
+    opentelemetry::trace::StartSpanOptions options;
+    options.kind    = opentelemetry::trace::SpanKind::kClient;
+    options.parent  = opentelemetry::trace::GetSpan(new_context)->GetContext();
+
+    std::string span_name = "Example Span from a client";
+    auto span             = Tracing::GetInstance().get_tracer()->StartSpan(span_name,
+                                                               {{"txn","zila89374598y98u06bdfef12345efdg"}},
+                                              options);
+
+    auto scope            = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+
+    auto another_current_ctx      = context::RuntimeContext::GetCurrent();
+    auto another_new_context      = prop->Extract(ourCarrier, another_current_ctx);
+
+    std::cout << "things to carry over the wire, if  you wish" << std::endl;
+
+    for (auto& x : ourCarrier.headers_ ){
+        std::cout << "Key [" << x.first << "] value [" << x.second << std::endl;
+    }
+
+    auto latest_span = another_current_ctx.GetValue("active_span");
+
+    bool holds_span = std::holds_alternative<std::shared_ptr<opentelemetry::v1::trace::Span>>(latest_span);
+
+    if (holds_span){
+        auto span = std::get<std::shared_ptr<opentelemetry::v1::trace::Span>>(latest_span);
+
+        // these are uint8_t arrays, so will need to convert to string to print or iter.
+
+        auto spanId = span->GetContext().span_id();
+        auto traceId = span->GetContext().trace_id();
+
+    }
 
     span->SetStatus(opentelemetry::trace::StatusCode::kOk, "We are all good here");
 
-
     span->End();
-
 
     for (
             int i = 0;
