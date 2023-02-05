@@ -6,23 +6,18 @@
 #include <thread>
 #include <vector>
 
+#include "libMetrics/Api.h"
 
-#include "opentelemetry/ext/http/client/http_client_factory.h"
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
-#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
-#include "opentelemetry/nostd/shared_ptr.h"
-#include "opentelemetry/sdk/trace/simple_processor_factory.h"
-#include "opentelemetry/sdk/trace/tracer_context_factory.h"
-#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
 #include "opentelemetry/trace/propagation/http_trace_context.h"
 #include "opentelemetry/trace/provider.h"
 #include "opentelemetry/trace/context.h"
-#include "opentelemetry/trace/semantic_conventions.h"
-#include "opentelemetry/trace/span_context_kv_iterable_view.h"
-#include "opentelemetry/ext/http/client/http_client.h"
 
-#include "libMetrics/Api.h"
+#include "opentelemetry/trace/span_context_kv_iterable_view.h"
+
+
+
 
 namespace metrics_api = opentelemetry::metrics;
 namespace nostd = opentelemetry::nostd;
@@ -159,9 +154,9 @@ int main() {
     Metrics::GetInstance();
     Tracing::GetInstance();
 
-#if TEST_WRAPPERS
+
     TestNewWrappers();
-#endif
+
 
     auto Topspan = START_SPAN(ACC_EVM, {});
     SCOPED_SPAN(ACC_EVM, Topscope, Topspan);

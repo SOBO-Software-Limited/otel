@@ -57,8 +57,13 @@ void Tracing::Init() {
 
 void Tracing::NoopInit (){
   TRACE_ZILLIQA_MASK = "";
-  std::shared_ptr<opentelemetry::trace::TracerProvider> none;
-  opentelemetry::trace::Provider::SetTracerProvider(none);
+  std::shared_ptr<opentelemetry::trace::TracerProvider> provider(
+      new opentelemetry::trace::NoopTracerProvider());
+
+  // Set the global tracer provider
+  trace_api::Provider::SetTracerProvider(provider);
+
+  LOG_GENERAL(INFO,"Trace set to NOOP Provider");
 }
 
 

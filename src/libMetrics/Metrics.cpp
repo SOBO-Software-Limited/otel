@@ -38,7 +38,6 @@
 #include "opentelemetry/sdk/metrics/metric_reader.h"
 #include "opentelemetry/sdk/resource/resource.h"
 
-#include "Tracing.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 
@@ -76,6 +75,8 @@ void Metrics::Init() {
 
 void Metrics::InitNoop() {
   METRIC_ZILLIQA_MASK = "";
+  auto tf = opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(new opentelemetry::metrics::NoopMeterProvider());
+  opentelemetry::metrics::Provider::SetMeterProvider(tf);
 }
 
 void Metrics::InitStdOut() {
@@ -361,8 +362,16 @@ void Metrics::AddCounterHistogramView(const std::string name,
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
   GetInstance();
 
+  auto p1 = metrics_api::Provider::GetMeterProvider();
+  auto p2 = p1->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
+                        METRIC_ZILLIQA_SCHEMA);
+
+  return p2;
+/*
   const auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
+
+
 
   assert(p);
 
@@ -373,6 +382,7 @@ std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
     std::cout << "Initialisation problem" << std::endl;
     abort();
   }
+  */
 }
 
 namespace zil::metrics {
