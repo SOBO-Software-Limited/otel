@@ -41,39 +41,22 @@ namespace resource = opentelemetry::sdk::resource;
 Tracing::Tracing() { Init(); }
 
 void Tracing::Init() {
-  zil::trace::Filter::GetInstance().init();
+  if (not TRACE_ZILLIQA_MASK.empty() and TRACE_ZILLIQA_MASK != "NONE") {
+    zil::trace::Filter::GetInstance().init();
+  }
   std::string cmp{TRACE_ZILLIQA_PROVIDER};
 
   if (cmp == "OTLPHTTP") {
     OtlpHTTPInit();
-  } else {
+  } else if (cmp == "STDOUT") {
     StdOutInit();
+  } else {
+    NoopInit();
   }
 }
 
-void InitTracer()
-{
-  auto exporter = opentelemetry::exporter::trace::OStreamSpanExporterFactory::Create();
-  auto processor =
-      opentelemetry::sdk::trace::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  std::vector<std::unique_ptr<opentelemetry::sdk::trace::SpanProcessor>> processors;
-  processors.push_back(std::move(processor));
-  // Default is an always-on sampler.
-  std::shared_ptr<opentelemetry::sdk::trace::TracerContext> context =
-      opentelemetry::sdk::trace::TracerContextFactory::Create(std::move(processors));
-  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
-      opentelemetry::sdk::trace::TracerProviderFactory::Create(context);
-  // Set the global trace provider
-  opentelemetry::trace::Provider::SetTracerProvider(provider);
-
-  // set global propagator
-  opentelemetry::context::propagation::GlobalTextMapPropagator::SetGlobalPropagator(
-      opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
-          new opentelemetry::trace::propagation::HttpTraceContext()));
-}
-
-void CleanupTracer()
-{
+void Tracing::NoopInit (){
+  TRACE_ZILLIQA_MASK = "";
   std::shared_ptr<opentelemetry::trace::TracerProvider> none;
   opentelemetry::trace::Provider::SetTracerProvider(none);
 }
@@ -108,7 +91,7 @@ void Tracing::OtlpHTTPInit() {
       opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
           new opentelemetry::trace::propagation::HttpTraceContext()));
 
-  m_provider = provider;
+
 }
 
 void Tracing::StdOutInit() {
@@ -118,12 +101,11 @@ void Tracing::StdOutInit() {
   resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
                                              {"version", (uint32_t)1}};
   auto resource = resource::Resource::Create(attributes);
-
-  m_provider =
+  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
       trace_sdk::TracerProviderFactory::Create(std::move(processor), resource);
 
   // Set the global trace provider
-  trace_api::Provider::SetTracerProvider(m_provider);
+  trace_api::Provider::SetTracerProvider(provider);
 
   // Setup a prpogator
 
@@ -135,17 +117,17 @@ void Tracing::StdOutInit() {
 }
 
 std::shared_ptr<trace_api::Tracer> Tracing::get_tracer() {
-  return m_provider->GetTracer("zilliqa-cpp", OPENTELEMETRY_SDK_VERSION);
+  return trace_api::Provider::GetTracerProvider()->GetTracer("zilliqa-cpp", OPENTELEMETRY_SDK_VERSION);
 }
 
 void Tracing::Shutdown() {
-  if (m_provider) {
+
     std::shared_ptr<opentelemetry::trace::TracerProvider> provider(
         new opentelemetry::trace::NoopTracerProvider());
 
     // Set the global tracer provider
     trace_api::Provider::SetTracerProvider(provider);
-  }
+
 }
 
 namespace zil::trace {

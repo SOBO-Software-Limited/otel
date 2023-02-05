@@ -53,7 +53,9 @@ Metrics::Metrics() { Init(); }
 
 
 void Metrics::Init() {
-  zil::metrics::Filter::GetInstance().init();
+  if (not METRIC_ZILLIQA_MASK.empty() and METRIC_ZILLIQA_MASK != "NONE") {
+    zil::metrics::Filter::GetInstance().init();
+  }
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
@@ -65,9 +67,15 @@ void Metrics::Init() {
     InitOTHTTP();
   } else if (cmp == "OTLPGRPC") {
     InitOtlpGrpc();
+  } else if (cmp == "STDOUT"){
+    InitStdOut();
   } else {
-    InitStdOut();  // our favourite
+    InitNoop();
   }
+}
+
+void Metrics::InitNoop() {
+  METRIC_ZILLIQA_MASK = "";
 }
 
 void Metrics::InitStdOut() {

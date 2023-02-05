@@ -223,6 +223,8 @@ class Metrics : public Singleton<Metrics> {
   void InitOtlpGrpc();
 
   void InitStdOut();
+
+  void InitNoop();
 };
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_METRICS_H_

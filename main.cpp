@@ -168,6 +168,11 @@ int main() {
 
     ZilliqaMapCarrier<std::map<std::string,std::string>>  ourCarrier{};
 
+    // pretend these came in from the wire, although we do not need the carrier at all i suspect
+
+    ourCarrier.headers_.insert({"silly","string"});
+    ourCarrier.headers_.insert({"something","else"});
+
     auto prop        = context::propagation::GlobalTextMapPropagator::GetGlobalPropagator();
     auto current_ctx      = context::RuntimeContext::GetCurrent();
     auto new_context      = prop->Extract(ourCarrier, current_ctx);
