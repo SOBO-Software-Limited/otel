@@ -3,6 +3,13 @@ project(otel)
 
 set (CMAKE_CXX_STANDARD 20)
 
+include(FetchContent)
+FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+
+FetchContent_MakeAvailable(googletest)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -26,19 +33,28 @@ find_package(Boost COMPONENTS filesystem system unit_test_framework program_opti
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_compile_options(-Wno-unused-parameter)
+add_compile_options(-DWITH_STL=ON -Wno-unused-parameter)
 
-include_directories(. src)
+include_directories(. src ${OPENTELEMETRY_CPP_INCLUDE_DIRS})
 
 add_subdirectory(src/libMetrics)
 
-set_target_properties(opentelemetry-cpp::opentelemetry_exporter_prometheus PROPERTIES
-        INTERFACE_LINK_LIBRARIES "opentelemetry-cpp::metrics"
-        )
 
-add_executable(otel main.cpp src/libUtils/Logger.h)
+enable_testing()
 
-target_link_libraries(otel PUBLIC Metrics )
+add_executable(
+        test_api
+        Test.cpp
+)
+target_link_libraries(
+        test_api
+        Metrics
+        GTest::gtest_main
+)
+target_include_directories(test_api PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CURL_INCLUDE_DIRS} ${OPENTELEMETRY_CPP_INCLUDE_DIRS})
+
+include(GoogleTest)
+gtest_discover_tests(test_api)
 
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
