@@ -2,15 +2,8 @@
   "name": "zilliqa",
   "version-string": "master",
   "dependencies": [
-    "jsoncpp",
-    "openssl",
-    "python3",
-    "snappy",
     "boost",
-    "websocketpp",
     "gtest",
-    "miniupnpc",
-    "libevent",
     "curl",
     {
       "name": "opentelemetry-cpp",
@@ -24,14 +17,6 @@
   ],
   "builtin-baseline": "6ca56aeb457f033d344a7106cb3f9f1abf8f4e98",
   "overrides": [
-    {
-      "name": "openssl",
-      "version-string": "1.1.1n"
-    },
-    {
-      "name": "websocketpp",
-      "version": "0.8.2#3"
-    },
     {
       "name": "opentelemetry-cpp",
       "version": "1.8.0#2"

@@ -45,7 +45,7 @@ enable_testing()
 add_executable(
         test_api
         Test.cpp
-)
+        Test.cpp src/common/Constants.h)
 target_link_libraries(
         test_api
         Metrics
