@@ -154,8 +154,9 @@ int main() {
     Metrics::GetInstance();
     Tracing::GetInstance();
 
-
+#if 0
     TestNewWrappers();
+#endif
 
 
     auto Topspan = START_SPAN(ACC_EVM, {});
@@ -165,15 +166,36 @@ int main() {
 
     // pretend these came in from the wire, although we do not need the carrier at all i suspect
 
-    ourCarrier.headers_.insert({"silly","string"});
-    ourCarrier.headers_.insert({"something","else"});
+
 
     auto prop        = context::propagation::GlobalTextMapPropagator::GetGlobalPropagator();
     auto current_ctx      = context::RuntimeContext::GetCurrent();
+    prop->Inject(ourCarrier, current_ctx);
+
+
+    // blah blah blah
+
+    // now we pretend that we recieved a new packet
+
+    ourCarrier.headers_.insert({"silly","string"});
+    ourCarrier.headers_.insert({"something","else"});
+
+
+    // get a new context from carrier with carriers info added.
     auto new_context      = prop->Extract(ourCarrier, current_ctx);
+
+    std::cout << "things to carry over the wire, if  you wish" << std::endl;
+
+    for (auto& x : ourCarrier.headers_ ){
+        std::cout << "Key [" << x.first << "] value [" << x.second << std::endl;
+    }
+
 
     opentelemetry::trace::StartSpanOptions options;
     options.kind    = opentelemetry::trace::SpanKind::kClient;
+    //
+    // Set the parent context from what we received over the wire.
+    //
     options.parent  = opentelemetry::trace::GetSpan(new_context)->GetContext();
 
     std::string span_name = "Example Span from a client";
@@ -184,7 +206,7 @@ int main() {
     auto scope            = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
 
     auto another_current_ctx      = context::RuntimeContext::GetCurrent();
-    auto another_new_context      = prop->Extract(ourCarrier, another_current_ctx);
+    prop->Inject(ourCarrier, another_current_ctx);
 
     std::cout << "things to carry over the wire, if  you wish" << std::endl;
 

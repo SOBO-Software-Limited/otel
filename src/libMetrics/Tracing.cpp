@@ -17,6 +17,7 @@
 
 #include "Tracing.h"
 
+#include <opentelemetry/exporters/otlp/otlp_grpc_exporter_options.h>
 #include <opentelemetry/sdk/trace/tracer_context_factory.h>
 #include <boost/algorithm/string.hpp>
 #include "opentelemetry/context/propagation/global_propagator.h"
@@ -27,6 +28,7 @@
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
 #include "opentelemetry/trace/propagation/http_trace_context.h"
 #include "opentelemetry/trace/provider.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 
 #include "TraceFilters.h"
 #include "common/Constants.h"
@@ -51,6 +53,7 @@ void Tracing::Init() {
   } else if (cmp == "STDOUT") {
     StdOutInit();
   } else {
+    LOG_GENERAL(WARNING,"Telemetry provider has defaulted to NOOP provider due to no configuration");
     NoopInit();
   }
 }
@@ -97,6 +100,16 @@ void Tracing::OtlpHTTPInit() {
           new opentelemetry::trace::propagation::HttpTraceContext()));
 
 
+}
+
+void Tracing::InitOtlpGrpc() {
+  opentelemetry::exporter::otlp::OtlpGrpcExporterOptions opts;
+  auto exporter  = otlp::OtlpGrpcExporterFactory::Create(opts);
+  auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
+      trace_sdk::TracerProviderFactory::Create(std::move(processor));
+  // Set the global trace provider
+  opentelemetry::trace::Provider::SetTracerProvider(provider);
 }
 
 void Tracing::StdOutInit() {

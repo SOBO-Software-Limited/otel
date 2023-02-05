@@ -74,6 +74,7 @@ class Tracing : public Singleton<Tracing> {
   void StdOutInit();
   void OtlpHTTPInit();
   void NoopInit();
+  void InitOtlpGrpc();
 
 };
 
