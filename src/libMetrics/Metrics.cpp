@@ -52,13 +52,16 @@ Metrics::Metrics() { Init(); }
 
 
 void Metrics::Init() {
-  if (not METRIC_ZILLIQA_MASK.empty() and METRIC_ZILLIQA_MASK != "NONE") {
+  if (METRIC_ZILLIQA_MASK.empty() or METRIC_ZILLIQA_MASK == "NONE") {
+    METRIC_ZILLIQA_PROVIDER="";
+  } else {
     zil::metrics::Filter::GetInstance().init();
   }
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
   if (cmp == "PROMETHEUS") {
+    std::cout << "initialising prometheus" << std::endl;
     InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT));
 
@@ -76,6 +79,8 @@ void Metrics::Init() {
 
 void Metrics::InitNoop() {
   METRIC_ZILLIQA_MASK = "";
+  opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider> bill = opentelemetry::metrics::Provider::GetMeterProvider();
+
   auto tf = opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(new opentelemetry::metrics::NoopMeterProvider());
   opentelemetry::metrics::Provider::SetMeterProvider(tf);
 }

@@ -216,6 +216,7 @@ class Metrics : public Singleton<Metrics> {
 
  private:
 
+  friend class api_test;
 
   void InitPrometheus(const std::string &addr);
 

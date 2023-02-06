@@ -63,29 +63,29 @@ class ApiTest : public ::testing::Test {
 };
 
 TEST_F(ApiTest, TestBadProviderConfiguration) {
-  METRIC_ZILLIQA_PROVIDER = "STDOUT";
-  METRIC_ZILLIQA_MASK = "ALL";
+
 
 
   Z_I64METRIC iCounter(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "i64Counter", "the first i64 counter", "seconds");
 
   for (int i = 0; i < 100; i++) iCounter++;
+
 
 }
 
 TEST_F(ApiTest, TestGoodProviderConfiguration) {
-  METRIC_ZILLIQA_PROVIDER = "STDOUT";
-  METRIC_ZILLIQA_MASK = "ALL";
+
+
 
   Z_I64METRIC iCounter(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "i64Counter", "the first i64 counter", "seconds");
 
   for (int i = 0; i < 100; i++) iCounter++;
+
+
 
 }
 
 TEST_F(ApiTest, TestStdOutProviderConfiguration) {
-  METRIC_ZILLIQA_PROVIDER = "STDOUT";
-  METRIC_ZILLIQA_MASK = "ALL";
 
 
   Z_I64METRIC iCounter(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "i64Counter", "the first i64 counter", "seconds");
@@ -95,10 +95,23 @@ TEST_F(ApiTest, TestStdOutProviderConfiguration) {
 
 }
 
-TEST_F(ApiTest, TestI64Counter) {
+TEST_F(ApiTest, TestNoneProviderConfiguration) {
+
   Z_I64METRIC iCounter(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "i64Counter", "the first i64 counter", "seconds");
 
   for (int i = 0; i < 100; i++) iCounter++;
+
+}
+
+TEST_F(ApiTest, TestI64Counter) {
+
+
+  Z_I64METRIC iCounter(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "i64Counter", "the first i64 counter", "seconds");
+
+  for (int i = 0; i < 100; i++) iCounter++;
+
+
+
 }
 
 TEST_F(ApiTest, TestdoubleCounter) {
@@ -109,8 +122,7 @@ TEST_F(ApiTest, TestdoubleCounter) {
 
 TEST_F(ApiTest, TestdoubleHistogram) {
   std::list<double> boundary{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
-  Z_DBLHIST histogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "dblHistogram", boundary, "the first Histogram counter",
-                      "seconds");
+  Z_DBLHIST histogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "dblHistogram", boundary, "the first Histogram counter","seconds");
 
   for (int i = 0; i < 100; i++) {
     histogram.Record((i++ % 9));
@@ -122,11 +134,21 @@ TEST_F(ApiTest, TestdoubleHistogram) {
 TEST_F(ApiTest, TestDoubleGauge) {
   Z_DBLGAUGE dGauge(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "dblGauge", "My very first gauge", "seconds", true);
 
-  dGauge.SetCallback([](auto &&result) {
+  double a,b;
+
+  dGauge.SetCallback([&a,&b](auto &&result) {
     std::cout << "Holds double data" << std::endl;
-    result.Set(87654.0, {{"counter", "BlockNumber"}});
-    result.Set(12345.5, {{"counter", "DSBlockNumber"}});
+    result.Set(a, {{"counter", "BlockNumber"}});
+    result.Set(b, {{"counter", "DSBlockNumber"}});
   });
+
+
+  for (int i =0 ; i < 100;i++) {
+    a = rand() % 100;
+    b = rand() % 99;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
 }
 
 TEST_F(ApiTest, Testi64Gauge) {
@@ -142,15 +164,26 @@ TEST_F(ApiTest, Testi64Gauge) {
 TEST_F(ApiTest, TestUpDown) {
   Z_I64UPDOWN i64upAndDown(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "upAndDown", "My very first updown", "flips", true);
 
-  const auto lambda = [](auto &&result) {
+  int i = 0;
+
+  const auto lambda = [&i](auto &&result) {
     // do any you like in here
 
     std::cout << "hello world" << std::endl;
 
-    result.Set(666, {{"from", "me"}});
+    result.Set(i++, {{"from", "me"}});
   };
 
   i64upAndDown.SetCallback(lambda);
+
+  for (int i =0 ; i < 100;i++) {
+    i = rand() % 100;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(100000));
+
+
 }
 
 TEST_F(ApiTest, TestTrace) {
