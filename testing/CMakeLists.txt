@@ -8,10 +8,7 @@ FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
-add_executable(
-        test_api
-        Test.cpp
-        Test.cpp)
+add_executable( test_api   Test.cpp)
 target_link_libraries(
         test_api
         Metrics

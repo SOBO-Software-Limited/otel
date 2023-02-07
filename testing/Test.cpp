@@ -186,6 +186,41 @@ TEST_F(ApiTest, TestUpDown) {
 
 }
 
+TEST_F(ApiTest, TestGrabTrace) {
+  std::map<int, std::shared_ptr<opentelemetry::trace::Span>> span_map;
+
+
+  opentelemetry::trace::StartSpanOptions options;
+  options.kind = opentelemetry::trace::SpanKind::kClient;
+  std::string span_name = "Example Span from a client";
+  auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"txn", "zila89374598y98u06bdfef12345efdg"}}, options);
+
+  // save it somewhere to kee it alive.
+  span_map.insert({1, span});
+
+
+  auto context = span->GetContext();
+
+  char trace_id[32];
+  context.trace_id().ToLowerBase16(trace_id);
+  char span_id[16];
+  context.span_id().ToLowerBase16(span_id);
+  char trace_flags[2];
+  context.trace_flags().ToLowerBase16(trace_flags);
+
+  std::string result;
+  result = std::string(trace_flags) + "-" + span_id + "-" + trace_id ;
+
+  std::cout << result << std::endl;
+
+
+  span_map[1]->End();
+
+  span_map[1] = nullptr;
+
+
+}
+
 TEST_F(ApiTest, TestTrace) {
   auto Topspan = START_SPAN(ACC_EVM, {});
   SCOPED_SPAN(ACC_EVM, Topscope, Topspan);

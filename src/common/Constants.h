@@ -21,7 +21,7 @@
 #include <string>
 
 namespace {
-std::string METRIC_ZILLIQA_PROVIDER{"PROMETHEUS"};
+std::string METRIC_ZILLIQA_PROVIDER{"STDOUT"};
 std::string METRIC_ZILLIQA_HOSTNAME{"0.0.0.0"};
 int METRIC_ZILLIQA_PORT{8555};
 std::string METRIC_ZILLIQA_MASK{"ALL"};

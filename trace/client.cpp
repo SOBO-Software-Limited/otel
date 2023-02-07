@@ -102,6 +102,7 @@ class AsyncTCPClient : public boost::noncopyable {
                                 Callback callback, unsigned int request_id) {
 
     // OPENTELEMETRY HERE
+
     opentelemetry::trace::StartSpanOptions options;
     options.kind = opentelemetry::trace::SpanKind::kClient;
     std::string span_name = "Example Span from a client";
@@ -109,11 +110,14 @@ class AsyncTCPClient : public boost::noncopyable {
     span_map.insert({request_id, span});
     auto context = span->GetContext();
 
+    auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
+
 
     std::string message = Inject(context);
 
     // Preparing the request string.
-    std::string request = "EMULATE_LONG_CALC_OP " + std::to_string(duration_sec) + " " + message + "\n";
+    std::string request = "EMULATE_LONG_CALC_OP ";
+    request += "-" + std::to_string(duration_sec) + "-" + message + "\n";
 
     std::shared_ptr<Session> session =
         std::shared_ptr<Session>(new Session(m_ios, raw_ip_address, port_num, request, request_id, callback));

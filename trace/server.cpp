@@ -1,9 +1,11 @@
 #include <boost/asio.hpp>
 
-#include <thread>
+#include <opentelemetry/trace/propagation/detail/hex.h>
+#include <opentelemetry/trace/propagation/detail/string.h>
 #include <atomic>
-#include <memory>
 #include <iostream>
+#include <memory>
+#include <thread>
 
 #include "libMetrics/Api.h"
 
@@ -75,18 +77,66 @@ class Service {
     delete this;
   }
 
+  opentelemetry::trace::TraceId TraceIdFromHex(opentelemetry::nostd::string_view trace_id)
+  {
+    uint8_t buf[trace_id.size() / 2];
+    opentelemetry::trace::propagation::detail::HexToBinary(trace_id, buf, sizeof(buf));
+    return opentelemetry::trace::TraceId(opentelemetry::nostd::span<uint8_t>(buf));
+  }
+
+  static SpanId SpanIdFromHex(nostd::string_view span_id)
+  {
+    uint8_t buf[kSpanIdHexStrLength / 2];
+    detail::HexToBinary(span_id, buf, sizeof(buf));
+    return SpanId(buf);
+  }
+
+  static TraceFlags TraceFlagsFromHex(nostd::string_view trace_flags)
+  {
+    if (trace_flags.length() != 1 || (trace_flags[0] != '1' && trace_flags[0] != 'd'))
+    {  // check for invalid length of flags and treat 'd' as sampled
+      return TraceFlags(0);
+    }
+    return TraceFlags(TraceFlags::kIsSampled);
+  }
+
   std::string ProcessRequest(asio::streambuf& request) {
 
     // In this method we parse the request, process it
     // and prepare the request.
     std::istream buffer( &request );
     std::stringstream string_buffer;
-
     string_buffer <<  buffer.rdbuf();
+    std::string_view buf(string_buffer.str()) ;
+    std::string_view cmd;
+    std::string_view time;
+    std::string_view trace_id_hex;
+    std::string_view span_id_hex;
+    std::string_view trace_flags_hex;
 
-    std::cout << string_buffer.str() << std::endl;
+    if (!buf.empty())
+    {
+      std::array<std::string_view, 5> fields{};
 
+      if (opentelemetry::trace::propagation::detail::SplitString(buf, '-', fields.data(), 5) < 5)
+      {
+        return "invalid format";
+      }
 
+      cmd = fields[0];
+      time = fields[1];
+      trace_id_hex    = fields[2];
+      span_id_hex     = fields[3];
+      trace_flags_hex = fields[4];
+    }
+
+    if (!opentelemetry::trace::propagation::detail::IsValidHex(trace_id_hex) || !opentelemetry::trace::propagation::detail::IsValidHex(span_id_hex))
+    {
+      return  "invalid hex";
+    }
+
+    opentelemetry::trace::TraceId trace_id = opentelemetry::trace::propagation::detail::TraceIdFromHex(trace_id_hex);
+    opentelemetry::trace::SpanId span_id   = opentelemetry::trace::propagation::detail::SpanIdFromHex(span_id_hex);
 
     // Emulate CPU-consuming operations.
     int i = 0;
