@@ -209,7 +209,7 @@ TEST_F(ApiTest, TestGrabTrace) {
   context.trace_flags().ToLowerBase16(trace_flags);
 
   std::string result;
-  result = std::string(trace_flags) + "-" + span_id + "-" + trace_id ;
+  result = std::string(trace_flags,2) + "-" + std::string(span_id,16) + "-" + std::string(trace_id,32) ;
 
   std::cout << result << std::endl;
 
