@@ -42,10 +42,7 @@ add_subdirectory(src/libMetrics)
 
 enable_testing()
 
-add_executable(
-        test_api
-        Test.cpp
-        Test.cpp src/common/Constants.h)
+add_executable( test_api   ${PROJECT_SOURCE_DIR}/testing/Test.cpp)
 target_link_libraries(
         test_api
         Metrics
@@ -55,6 +52,8 @@ target_include_directories(test_api PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BIN
 
 include(GoogleTest)
 gtest_discover_tests(test_api)
+
+
 
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 

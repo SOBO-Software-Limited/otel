@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_TRACING_H_
 #define ZILLIQA_SRC_LIBMETRICS_TRACING_H_
 
+#include <opentelemetry/context/propagation/text_map_propagator.h>
+#include <opentelemetry/trace/propagation/http_trace_context.h>
 #include <opentelemetry/trace/tracer.h>
 #include <opentelemetry/trace/tracer_provider.h>
 #include <cassert>
@@ -106,5 +108,6 @@ using TRACE_ATTRIBUTE =
   ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES, \
                                                    OPTIONS)                  \
   : trace_api::Tracer::GetCurrentSpan()
+
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_TRACING_H_
