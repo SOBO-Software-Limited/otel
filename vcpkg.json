@@ -4,7 +4,6 @@
   "dependencies": [
     "boost",
     "gtest",
-    "curl",
     {
       "name": "opentelemetry-cpp",
       "default-features": false,
@@ -19,7 +18,7 @@
   "overrides": [
     {
       "name": "opentelemetry-cpp",
-      "version": "1.8.0#2"
+      "version": "1.8.2#1"
     }
   ]
 }

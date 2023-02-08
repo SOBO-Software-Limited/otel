@@ -121,7 +121,7 @@ TEST_F(ApiTest, TestdoubleCounter) {
 }
 
 TEST_F(ApiTest, TestdoubleHistogram) {
-  std::list<double> boundary{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+  std::vector<double> boundary{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
   Z_DBLHIST histogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "dblHistogram", boundary, "the first Histogram counter","seconds");
 
   for (int i = 0; i < 100; i++) {
