@@ -10,6 +10,7 @@
 // These will be ssummed into the cpp files of the API and not exposed once testing completed
 
 #include "common/Constants.h"
+#include "libUtils/Logger.h"
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
 #include "opentelemetry/trace/context.h"
@@ -187,16 +188,43 @@ TEST_F(ApiTest, TestUpDown) {
 }
 
 TEST_F(ApiTest, TestGrabTrace) {
-  std::map<int, std::shared_ptr<opentelemetry::trace::Span>> span_map;
 
+  // This is not the correct way
+  auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
+
+  // This is ...
+  auto cSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+
+  if (not cSpan->GetContext().IsValid()){
+    LOG_GENERAL(INFO,"no spans active");
+  }
+
+  // Now create a Span with ...
 
   opentelemetry::trace::StartSpanOptions options;
   options.kind = opentelemetry::trace::SpanKind::kClient;
   std::string span_name = "Example Span from a client";
   auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"txn", "zila89374598y98u06bdfef12345efdg"}}, options);
 
-  // save it somewhere to kee it alive.
+  // or
+
+  auto fastSpan = START_SPAN(EVM_RPC,{});
+
+
+  SCOPED_SPAN(ACC_EVM, scope, span);
+  // save it somewhere to keep it alive.
+
   span_map.insert({1, span});
+
+
+
+  auto activeSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+  auto spanContext  = activeSpan->GetContext();
+  if (spanContext.trace_id().IsValid() &&
+      spanContext.span_id().IsValid() ){
+    // we have an active trace.
+    LOG_GENERAL(INFO,"we have spans active");
+  }
 
 
   auto context = span->GetContext();
