@@ -189,10 +189,8 @@ TEST_F(ApiTest, TestUpDown) {
 
 TEST_F(ApiTest, TestGrabTrace) {
 
-  // This is not the correct way
-  auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
+  // Test to see if we have any spans
 
-  // This is ...
   auto cSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
 
   if (not cSpan->GetContext().IsValid()){
@@ -206,15 +204,14 @@ TEST_F(ApiTest, TestGrabTrace) {
   std::string span_name = "Example Span from a client";
   auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"txn", "zila89374598y98u06bdfef12345efdg"}}, options);
 
-  // or
+  // or use our own macro
 
   auto fastSpan = START_SPAN(EVM_RPC,{});
 
+  // make it active by sticking in a scope.
 
   SCOPED_SPAN(ACC_EVM, scope, span);
   // save it somewhere to keep it alive.
-
-  span_map.insert({1, span});
 
 
 
@@ -224,29 +221,21 @@ TEST_F(ApiTest, TestGrabTrace) {
       spanContext.span_id().IsValid() ){
     // we have an active trace.
     LOG_GENERAL(INFO,"we have spans active");
-  }
+    char trace_id[32];
+    spanContext.trace_id().ToLowerBase16(trace_id);
+    char span_id[16];
+    spanContext.span_id().ToLowerBase16(span_id);
+    char trace_flags[2];
+    spanContext.trace_flags().ToLowerBase16(trace_flags);
+    std::string result;
+    result = std::string(trace_flags,2) + "-" + std::string(span_id,16) + "-" + std::string(trace_id,32) ;
 
+    std::cout << result << std::endl;
+    }
 
-  auto context = span->GetContext();
+  span->End();
 
-  char trace_id[32];
-  context.trace_id().ToLowerBase16(trace_id);
-  char span_id[16];
-  context.span_id().ToLowerBase16(span_id);
-  char trace_flags[2];
-  context.trace_flags().ToLowerBase16(trace_flags);
-
-  std::string result;
-  result = std::string(trace_flags,2) + "-" + std::string(span_id,16) + "-" + std::string(trace_id,32) ;
-
-  std::cout << result << std::endl;
-
-
-  span_map[1]->End();
-
-  span_map[1] = nullptr;
-
-
+  // fast span should dissapear when function goes out of scope.
 }
 
 TEST_F(ApiTest, TestTrace) {
