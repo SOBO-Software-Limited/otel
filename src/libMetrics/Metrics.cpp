@@ -38,6 +38,7 @@
 #include "opentelemetry/sdk/metrics/metric_reader.h"
 #include "opentelemetry/sdk/resource/resource.h"
 
+#include "Tracing.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 
@@ -52,11 +53,7 @@ Metrics::Metrics() { Init(); }
 
 
 void Metrics::Init() {
-  if (METRIC_ZILLIQA_MASK.empty() or METRIC_ZILLIQA_MASK == "NONE") {
-    METRIC_ZILLIQA_PROVIDER="";
-  } else {
-    zil::metrics::Filter::GetInstance().init();
-  }
+  zil::metrics::Filter::GetInstance().init();
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
@@ -232,14 +229,6 @@ void Metrics::Shutdown() {
 namespace {
 
 
-/*
-auto GetMeter(
-    std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
-    const std::string &family) {
-  return provider->GetMeter(family, "1.2.0", METRIC_ZILLIQA_SCHEMA);
-}
- */
-
 inline std::string GetFullName(const std::string &family,
                                const std::string &name) {
   std::string full_name;
@@ -331,7 +320,7 @@ void Metrics::AddCounterSumView(const std::string &name,
 }
 
 void Metrics::AddCounterHistogramView(const std::string name,
-                                      std::list<double> list,
+                                      std::vector<double> list,
                                       const std::string &description) {
   // counter view
 

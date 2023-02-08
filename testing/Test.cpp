@@ -10,6 +10,7 @@
 // These will be ssummed into the cpp files of the API and not exposed once testing completed
 
 #include "common/Constants.h"
+#include "libUtils/Logger.h"
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
 #include "opentelemetry/trace/context.h"
@@ -121,7 +122,7 @@ TEST_F(ApiTest, TestdoubleCounter) {
 }
 
 TEST_F(ApiTest, TestdoubleHistogram) {
-  std::list<double> boundary{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+  std::vector<double> boundary{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
   Z_DBLHIST histogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "dblHistogram", boundary, "the first Histogram counter","seconds");
 
   for (int i = 0; i < 100; i++) {
@@ -187,38 +188,54 @@ TEST_F(ApiTest, TestUpDown) {
 }
 
 TEST_F(ApiTest, TestGrabTrace) {
-  std::map<int, std::shared_ptr<opentelemetry::trace::Span>> span_map;
 
+  // Test to see if we have any spans
+
+  auto cSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+
+  if (not cSpan->GetContext().IsValid()){
+    LOG_GENERAL(INFO,"no spans active");
+  }
+
+  // Now create a Span with ...
 
   opentelemetry::trace::StartSpanOptions options;
   options.kind = opentelemetry::trace::SpanKind::kClient;
   std::string span_name = "Example Span from a client";
   auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"txn", "zila89374598y98u06bdfef12345efdg"}}, options);
 
-  // save it somewhere to kee it alive.
-  span_map.insert({1, span});
+  // or use our own macro
+
+  auto fastSpan = START_SPAN(EVM_RPC,{});
+
+  // make it active by sticking in a scope.
+
+  SCOPED_SPAN(ACC_EVM, scope, span);
+  // save it somewhere to keep it alive.
 
 
-  auto context = span->GetContext();
 
-  char trace_id[32];
-  context.trace_id().ToLowerBase16(trace_id);
-  char span_id[16];
-  context.span_id().ToLowerBase16(span_id);
-  char trace_flags[2];
-  context.trace_flags().ToLowerBase16(trace_flags);
+  auto activeSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+  auto spanContext  = activeSpan->GetContext();
+  if (spanContext.trace_id().IsValid() &&
+      spanContext.span_id().IsValid() ){
+    // we have an active trace.
+    LOG_GENERAL(INFO,"we have spans active");
+    char trace_id[32];
+    spanContext.trace_id().ToLowerBase16(trace_id);
+    char span_id[16];
+    spanContext.span_id().ToLowerBase16(span_id);
+    char trace_flags[2];
+    spanContext.trace_flags().ToLowerBase16(trace_flags);
+    std::string result;
+    result = std::string(trace_flags,2) + "-" + std::string(span_id,16) + "-" + std::string(trace_id,32) ;
 
-  std::string result;
-  result = std::string(trace_flags) + "-" + span_id + "-" + trace_id ;
+    std::cout << result << std::endl;
+    }
 
-  std::cout << result << std::endl;
+  span->End();
 
-
-  span_map[1]->End();
-
-  span_map[1] = nullptr;
-
-
+  // fast span should dissapear when function goes out of scope.
 }
 
 TEST_F(ApiTest, TestTrace) {
