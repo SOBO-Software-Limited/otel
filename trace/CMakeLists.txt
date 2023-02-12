@@ -1,5 +1,3 @@
-set (CMAKE_CXX_STANDARD 20)
-
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     message(STATUS "Found ccache")
@@ -10,7 +8,7 @@ add_compile_options(-Wall)
 #add_compile_options(-Werror)
 add_compile_options(-pedantic)
 add_compile_options(-Wextra)
-add_compile_options(-std=c++20)
+
 
 find_package(CURL REQUIRED)
 find_package(opentelemetry-cpp REQUIRED)

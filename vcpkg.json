@@ -2,8 +2,6 @@
   "name": "zilliqa",
   "version-string": "master",
   "dependencies": [
-    "boost",
-    "gtest",
     {
       "name": "opentelemetry-cpp",
       "default-features": false,

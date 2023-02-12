@@ -1,6 +1,7 @@
 #include <chrono>
 #include <map>
 #include <memory>
+#include <span>
 #include <thread>
 #include <vector>
 
@@ -229,6 +230,7 @@ std::string ExtractTraceInfoFromActiveSpan() {
   }
 
   std::string result(TRACE_INFO_SIZE, '-');
+
   spanContext.trace_flags().ToLowerBase16(std::span<char, FLAGS_SIZE>(result.data() + FLAGS_OFFSET, FLAGS_SIZE));
   spanContext.span_id().ToLowerBase16(std::span<char, SPAN_ID_SIZE>(result.data() + SPAN_ID_OFFSET, SPAN_ID_SIZE));
   spanContext.trace_id().ToLowerBase16(std::span<char, TRACE_ID_SIZE>(result.data() + TRACE_ID_OFFSET, TRACE_ID_SIZE));
@@ -392,6 +394,9 @@ TEST_F(ApiTest, TestTrace) {
 
     auto spanId = span->GetContext().span_id();
     auto traceId = span->GetContext().trace_id();
+
+    std::cout << spanId.Id().begin() ;
+    std::cout << traceId.Id().begin() ;
   }
 
   span->SetStatus(opentelemetry::trace::StatusCode::kOk, "We are all good here");

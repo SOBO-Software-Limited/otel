@@ -72,8 +72,11 @@ void Tracing::NoopInit (){
 
 void Tracing::OtlpHTTPInit() {
   opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts;
-  std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" +
-        boost::lexical_cast<std::string>(TRACE_ZILLIQA_PORT)};
+  std::stringstream ss;
+  ss << TRACE_ZILLIQA_PORT;
+
+  std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" + ss.str() };
+
   if (!addr.empty()) {
     opts.url = "http://" + addr + "/v1/traces";
   }
@@ -248,7 +251,7 @@ struct TextMapCarrier
 
 }  // namespace
 
-void ExtractTraceInfoFromCurrentContext(std::string& out) {
+void ExtractTraceInfoFromCurrentContext(std::string& ) {
   auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
   TextMapCarrier carrier;
   auto prop = opentelemetry::context::propagation::GlobalTextMapPropagator::

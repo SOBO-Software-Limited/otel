@@ -1,12 +1,18 @@
-include(FetchContent)
-FetchContent_Declare(
-        googletest
-        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-)
+add_compile_options(-Wall)
+add_compile_options(-Werror)
+add_compile_options(-pedantic)
+add_compile_options(-Wextra)
 
-FetchContent_MakeAvailable(googletest)
 
-enable_testing()
+find_package(CURL REQUIRED)
+find_package(opentelemetry-cpp REQUIRED)
+find_package(nlohmann_json REQUIRED)
+find_package(protobuf CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+find_package(re2 CONFIG REQUIRED)
+find_package(GTest CONFIG REQUIRED)
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
+
 
 add_executable( test_api   Test.cpp)
 target_link_libraries(
@@ -14,7 +20,5 @@ target_link_libraries(
         Metrics
         GTest::gtest_main
 )
-target_include_directories(test_api PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CURL_INCLUDE_DIRS} ${OPENTELEMETRY_CPP_INCLUDE_DIRS})
+target_include_directories(test_api PUBLIC ${PROJECT_SOURCE_DIR}/src  ${OPENTELEMETRY_CPP_INCLUDE_DIRS})
 
-include(GoogleTest)
-gtest_discover_tests(test_api)
