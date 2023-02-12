@@ -9,7 +9,7 @@
 #include "opentelemetry/context/propagation/text_map_propagator.h"
 #include "opentelemetry/trace/propagation/b3_propagator.h"
 #include "opentelemetry/trace/provider.h"
-#include "opentelemetry/trace/span_context_kv_iterable_view.h"
+
 
 namespace {
 constexpr size_t FLAGS_OFFSET = 0;
