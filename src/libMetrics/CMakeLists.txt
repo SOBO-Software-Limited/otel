@@ -31,6 +31,4 @@ target_link_libraries(Metrics
         opentelemetry-cpp::otlp_http_exporter
         opentelemetry-cpp::prometheus_exporter
         opentelemetry-cpp::otlp_grpc_metrics_exporter
-        opentelemetry-cpp::otlp_grpc_exporter
-        PRIVATE
-        Boost::filesystem)
+        opentelemetry-cpp::otlp_grpc_exporter)

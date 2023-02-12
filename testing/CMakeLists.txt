@@ -11,7 +11,7 @@ find_package(protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(re2 CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
+
 
 
 add_executable( test_api   Test.cpp)

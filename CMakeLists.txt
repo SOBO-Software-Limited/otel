@@ -21,7 +21,6 @@ find_package(nlohmann_json REQUIRED)
 find_package(protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(re2 CONFIG REQUIRED)
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
 
 include_directories(. src ${OPENTELEMETRY_CPP_INCLUDE_DIRS})

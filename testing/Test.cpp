@@ -388,15 +388,14 @@ TEST_F(ApiTest, TestTrace) {
   bool holds_span = std::holds_alternative<std::shared_ptr<opentelemetry::v1::trace::Span>>(latest_span);
 
   if (holds_span) {
-    auto span = std::get<std::shared_ptr<opentelemetry::v1::trace::Span>>(latest_span);
+    //auto span = std::get<std::shared_ptr<opentelemetry::v1::trace::Span>>(latest_span);
 
     // these are uint8_t arrays, so will need to convert to string to print or iter.
 
-    auto spanId = span->GetContext().span_id();
-    auto traceId = span->GetContext().trace_id();
+    //auto spanId = span->GetContext().span_id();
+    //auto traceId = span->GetContext().trace_id();
 
-    std::cout << spanId.Id().begin() ;
-    std::cout << traceId.Id().begin() ;
+
   }
 
   span->SetStatus(opentelemetry::trace::StatusCode::kOk, "We are all good here");

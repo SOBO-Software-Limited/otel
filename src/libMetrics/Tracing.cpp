@@ -40,6 +40,7 @@ namespace trace_exporter = opentelemetry::exporter::trace;
 namespace otlp = opentelemetry::exporter::otlp;
 namespace resource = opentelemetry::sdk::resource;
 
+
 Tracing::Tracing() { Init(); }
 
 void Tracing::Init() {

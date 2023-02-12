@@ -23,7 +23,7 @@
 namespace {
 std::string METRIC_ZILLIQA_PROVIDER{"STDOUT"};
 std::string METRIC_ZILLIQA_HOSTNAME{"0.0.0.0"};
-int METRIC_ZILLIQA_PORT{8555};
+#define METRIC_ZILLIQA_PORT  8555
 std::string METRIC_ZILLIQA_MASK{"ALL"};
 const std::string METRIC_ZILLIQA_SCHEMA_VERSION{"1.2.0"};
 const std::string METRIC_ZILLIQA_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
