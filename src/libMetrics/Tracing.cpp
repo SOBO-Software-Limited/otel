@@ -40,6 +40,14 @@ namespace trace_exporter = opentelemetry::exporter::trace;
 namespace otlp = opentelemetry::exporter::otlp;
 namespace resource = opentelemetry::sdk::resource;
 
+#if defined(__APPLE__) || defined(__FreeBSD__)
+const char * appname = getprogname();
+#elif defined(_GNU_SOURCE)
+const char * appname = program_invocation_name;
+#else
+const char * appname = "?";
+#endif
+
 
 Tracing::Tracing() { Init(); }
 
@@ -81,7 +89,10 @@ void Tracing::OtlpHTTPInit() {
   if (!addr.empty()) {
     opts.url = "http://" + addr + "/v1/traces";
   }
-  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
+
+  std::string nice_name{ appname };
+  nice_name +=  ":" + Naming::GetInstance().name();
+  resource::ResourceAttributes attributes = {{"service.name", nice_name },
                                              {"version", (uint32_t)1}};
 
   auto resource = resource::Resource::Create(attributes);
@@ -92,7 +103,7 @@ void Tracing::OtlpHTTPInit() {
   processors.push_back(std::move(processor));
   // Default is an always-on sampler.
   std::shared_ptr<opentelemetry::sdk::trace::TracerContext> context =
-      opentelemetry::sdk::trace::TracerContextFactory::Create(std::move(processors));
+      opentelemetry::sdk::trace::TracerContextFactory::Create(std::move(processors),resource);
 
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
       opentelemetry::sdk::trace::TracerProviderFactory::Create(context);

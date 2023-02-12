@@ -45,8 +45,7 @@ class I64Counter {
   void Increment() { m_theCounter->Add(1); }
 
   void IncrementWithAttributes(long val, const METRIC_ATTRIBUTE &attr) {
-    auto context = opentelemetry::context::Context{};
-    m_theCounter->Add(val, attr, context);
+    m_theCounter->Add(val, attr);
   }
 
   virtual ~I64Counter() {}
@@ -75,8 +74,8 @@ class DoubleCounter {
   void Increment() { m_theCounter->Add(1); }
 
   void IncrementWithAttributes(double val, const METRIC_ATTRIBUTE &attr) {
-    auto context = opentelemetry::context::Context{};
-    m_theCounter->Add(val, attr, context);
+
+    m_theCounter->Add(val, attr);
   }
 
  private:

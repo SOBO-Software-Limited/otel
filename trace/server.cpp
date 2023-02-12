@@ -92,6 +92,9 @@ class Service {
     std::string_view span_id_hex;
     std::string_view trace_flags_hex;
 
+
+    std::string      string_as_used_by_p2p{""};
+
     if (!buf.empty())
     {
       std::array<std::string_view, 5> fields{};
@@ -107,6 +110,15 @@ class Service {
       span_id_hex     = fields[3];
       trace_flags_hex = fields[4];
     }
+
+    // recreate it just how Zilliqa will use.
+
+    std::string context_ser(buf.begin()+25,buf.end()-2);
+
+    auto span = CreateChildSpan("On The Server",context_ser);
+    auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+    auto context = span->GetContext();
+    span->AddEvent("Processing on server");
 
     if (!opentelemetry::trace::propagation::detail::IsValidHex(trace_id_hex) || !opentelemetry::trace::propagation::detail::IsValidHex(span_id_hex))
     {
@@ -124,6 +136,7 @@ class Service {
         std::chrono::milliseconds(100));
 
     // Prepare and return the response message.
+    span->AddEvent("Processing on server complete");
     std::string response = "Response\n";
     return response;
   }
@@ -248,9 +261,27 @@ class Server {
 
 const unsigned int DEFAULT_THREAD_POOL_SIZE = 2;
 
-int main()
+int main(int argc,char** argv)
 {
-  unsigned short port_num = 3333;
+  int port = 3333;
+
+  if (argc > 1){
+    port = atoi(argv[1]);
+  }
+  Naming::GetInstance().name(argv[1]);
+  Tracing::GetInstance();
+
+  // This just creates us a context that we may use anywhere in the program
+  opentelemetry::context::Context  ctx{"version",opentelemetry::context::ContextValue(8.6)};
+
+  // This is now the Active Span
+  opentelemetry::trace::StartSpanOptions options;
+  options.kind = opentelemetry::trace::SpanKind::kClient;
+  std::string span_name = "Start Main Program";
+  auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"main", "startup"}}, options);
+  auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+  // This is the new context but should not be required as it is in this thread local storage.
+  auto new_ctx = span->GetContext();
 
   try {
     Server srv;
@@ -261,7 +292,8 @@ int main()
     if (thread_pool_size == 0)
       thread_pool_size = DEFAULT_THREAD_POOL_SIZE;
 
-    srv.Start(port_num, thread_pool_size);
+    srv.Start(port, thread_pool_size);
+
 
     std::this_thread::sleep_for(std::chrono::seconds(6000000));
 

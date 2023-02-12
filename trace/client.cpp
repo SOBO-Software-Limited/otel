@@ -1,5 +1,4 @@
 #include <boost/predef.h>  // Tools to identify the OS.
-
 #include "libMetrics/Api.h"
 
 // We need this to enable cancelling of I/O operations on
@@ -82,42 +81,23 @@ class AsyncTCPClient : public boost::noncopyable {
   }
 
 
-    std::string
-    Inject(const opentelemetry::v1::trace::SpanContext &context)
-    {
-      std::string result;
-      char trace_id[32];
-      context.trace_id().ToLowerBase16(trace_id);
-      char span_id[16];
-      context.span_id().ToLowerBase16(span_id);
-      char trace_flags[2];
-      context.trace_flags().ToLowerBase16(trace_flags);
-
-      return result + trace_flags + "-" + span_id + "-" + trace_id ;
-    }
-
-
-
   void emulateLongComputationOp(unsigned int duration_sec, const std::string& raw_ip_address, unsigned short port_num,
                                 Callback callback, unsigned int request_id) {
 
     // OPENTELEMETRY HERE
 
-    opentelemetry::trace::StartSpanOptions options;
-    options.kind = opentelemetry::trace::SpanKind::kClient;
-    std::string span_name = "Example Span from a client";
-    auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"txn", "zila89374598y98u06bdfef12345efdg"}}, options);
-    span_map.insert({request_id, span});
+    std::string span_name = "In first Method";
+    auto span = Tracing::GetInstance().get_tracer()->StartSpan("first method");
+    auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
     auto context = span->GetContext();
 
-    auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
 
+    std::string context_ser = ExtractTraceInfoFromActiveSpan();
 
-    std::string message = Inject(context);
 
     // Preparing the request string.
     std::string request = "EMULATE_LONG_CALC_OP ";
-    request += "-" + std::to_string(duration_sec) + "-" + message + "\n";
+    request += "-" + std::to_string(duration_sec) + "-" + context_ser + "-\n";
 
     std::shared_ptr<Session> session =
         std::shared_ptr<Session>(new Session(m_ios, raw_ip_address, port_num, request, request_id, callback));
@@ -134,7 +114,16 @@ class AsyncTCPClient : public boost::noncopyable {
     m_active_sessions[request_id] = session;
     lock.unlock();
 
-    session->m_sock.async_connect(session->m_ep, [this, session](const system::error_code& ec) {
+    // We have to pass Context into a session as its tls based.
+
+    session->m_sock.async_connect(session->m_ep, [context, this, session](const system::error_code& ec) {
+
+      trace_api::StartSpanOptions options;
+      options.kind = trace_api::SpanKind::kServer;
+      options.parent = context;
+
+
+
       if (ec != boost::system::errc::success) {
         session->m_ec = ec;
         onRequestComplete(session);
@@ -148,10 +137,22 @@ class AsyncTCPClient : public boost::noncopyable {
         return;
       }
 
+
+
+      std::string span_name = "In first worker";
+      auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, options);
+      auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+      auto local_context = span->GetContext();
+
+
+      std::string context_ser = ExtractTraceInfoFromActiveSpan();
+
+
       asio::async_write(session->m_sock, asio::buffer(session->m_request),
-                        [this, session](const boost::system::error_code& ec, std::size_t bytes_transferred) {
+                        [span,this, session](const boost::system::error_code& ec, std::size_t bytes_transferred) {
                           if (ec != boost::system::errc::success) {
                             session->m_ec = ec;
+                            span->AddEvent("Error on request");
                             onRequestComplete(session);
                             return;
                           }
@@ -159,16 +160,18 @@ class AsyncTCPClient : public boost::noncopyable {
                           std::unique_lock<std::mutex> cancel_lock(session->m_cancel_guard);
 
                           if (session->m_was_cancelled) {
+                            span->AddEvent("Cancelled");
                             onRequestComplete(session);
                             return;
                           }
 
                           asio::async_read_until(
                               session->m_sock, session->m_response_buf, '\n',
-                              [this, session](const boost::system::error_code& ec, std::size_t bytes_transferred) {
+                              [span,this, session](const boost::system::error_code& ec, std::size_t bytes_transferred) {
                                 if (ec != boost::system::errc::success) {
                                   session->m_ec = ec;
                                 } else {
+                                  span->AddEvent("Success");
                                   std::istream strm(&session->m_response_buf);
                                   std::getline(strm, session->m_response);
                                 }
@@ -213,7 +216,7 @@ class AsyncTCPClient : public boost::noncopyable {
 
     // OPENTELEMETRY HERE
 
-    span_map[session->m_id]->End();
+    // span_map[session->m_id]->End();
 
     session->m_sock.shutdown(asio::ip::tcp::socket::shutdown_both, ignored_ec);
 
@@ -262,34 +265,53 @@ int main() {
   /*
    * Initialise the trace subsystem
    */
-
+  Naming::GetInstance().name("3333,3334,3335");
   Tracing::GetInstance();
 
-  try {
-    AsyncTCPClient client(4);
 
-    // Here we emulate the users behavior.
+  // This just creates us a context that we may use anywhere in the program
+  opentelemetry::context::Context  ctx{"version",opentelemetry::context::ContextValue(8.6)};
 
-    // User initiates a request with id 1.
-    client.emulateLongComputationOp(10, "127.0.0.1", 3333, handler, 1);
-    // Then does nothing for 5 seconds.
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-    // Then initiates another request with id 2.
-    client.emulateLongComputationOp(11, "127.0.0.1", 3333, handler, 2);
-    // Then decides to cancel the request with id 1.
-    client.cancelRequest(1);
-    // Does nothing for another 6 seconds.
-    std::this_thread::sleep_for(std::chrono::seconds(6));
-    // Initiates one more request assigning ID 3 to it.
-    client.emulateLongComputationOp(12, "127.0.0.1", 3333, handler, 3);
-    // Does nothing for another 15 seconds.
-    std::this_thread::sleep_for(std::chrono::seconds(15));
-    // Decides to exit the application.
-    client.close();
-  } catch (system::system_error& e) {
-    std::cout << "Error occured! Error code = " << e.code() << ". Message: " << e.what();
+  // This is now the Active Span
+  opentelemetry::trace::StartSpanOptions options;
+  options.kind = opentelemetry::trace::SpanKind::kClient;
+  std::string span_name = "Start Main Program";
+  auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"main", "startup"}}, options);
+  auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+  // This is the new context but should not be required as it is in this thread local storage.
+  auto new_ctx = span->GetContext();
 
-    return e.code().value();
+  while(1) {
+    try {
+      AsyncTCPClient client(4);
+      std::string in_span_name = "In Main Loop";
+      auto inspan = Tracing::GetInstance().get_tracer()->StartSpan(in_span_name, {{"main", "startup"}}, options);
+      auto inscope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+
+
+      // Here we emulate the users behavior.
+
+      // User initiates a request with id 1.
+      client.emulateLongComputationOp(10, "127.0.0.1", 3333, handler, 1);
+      // Then does nothing for 5 seconds.
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+      // Then initiates another request with id 2.
+      client.emulateLongComputationOp(11, "127.0.0.1", 3334, handler, 2);
+      // Then decides to cancel the request with id 1.
+      client.cancelRequest(1);
+      // Does nothing for another 6 seconds.
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+      // Initiates one more request assigning ID 3 to it.
+      client.emulateLongComputationOp(12, "127.0.0.1", 3335, handler, 3);
+      // Does nothing for another 15 seconds.
+      std::this_thread::sleep_for(std::chrono::seconds(2));
+      // Decides to exit the application.
+      client.close();
+    } catch (system::system_error& e) {
+      std::cout << "Error occured! Error code = " << e.code() << ". Message: " << e.what();
+
+      return e.code().value();
+    }
   }
 
   return 0;
