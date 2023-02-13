@@ -292,6 +292,8 @@ TEST_F(ApiTest, TestTraceChildSpans) {
   constexpr size_t N_THREADS = 32;
   std::atomic<int> count = 0;
 
+  ASSERT_TRUE(ExtractTraceInfoFromActiveSpan().empty());
+
   auto activeSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
   ASSERT_FALSE(activeSpan->GetContext().IsValid());
 
@@ -305,6 +307,8 @@ TEST_F(ApiTest, TestTraceChildSpans) {
   ASSERT_EQ(activeSpan->GetContext(), span->GetContext());
 
   auto worker = [&count](std::string traceInfo) {
+    ASSERT_TRUE(ExtractTraceInfoFromActiveSpan().empty());
+
     auto activeSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
     ASSERT_FALSE(activeSpan->GetContext().IsValid());
 
@@ -314,6 +318,8 @@ TEST_F(ApiTest, TestTraceChildSpans) {
     ASSERT_TRUE(span->GetContext().IsValid());
 
     span->AddEvent("Ololo", {{ "Counter", count.load() }});
+
+    ASSERT_FALSE(ExtractTraceInfoFromActiveSpan().empty());
   };
 
   auto traceInfo = ExtractTraceInfoFromActiveSpan();

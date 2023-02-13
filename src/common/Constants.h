@@ -21,7 +21,7 @@
 #include <string>
 
 namespace {
-std::string METRIC_ZILLIQA_PROVIDER{"STDOUT"};
+std::string METRIC_ZILLIQA_PROVIDER{"PROMETHEUS"};
 std::string METRIC_ZILLIQA_HOSTNAME{"0.0.0.0"};
 int METRIC_ZILLIQA_PORT{8555};
 std::string METRIC_ZILLIQA_MASK{"ALL"};
@@ -32,8 +32,8 @@ const std::string METRIC_ZILLIQA_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"
 const uint64_t METRIC_ZILLIQA_READER_EXPORT_MS{1000};
 const uint64_t METRIC_ZILLIQA_READER_TIMEOUT_MS{500};
 
-std::string TRACE_ZILLIQA_PROVIDER{"STDOUT"};
-const std::string TRACE_ZILLIQA_HOSTNAME{"localhost"};
+std::string TRACE_ZILLIQA_PROVIDER{"OTLPHTTP"};
+const std::string TRACE_ZILLIQA_HOSTNAME{"0.0.0.0"};
 const std::string TRACE_ZILLIQA_PORT{"4318"};
 const double METRICS_VERSION{8.6};
 const std::string WARNING{"WARNING"};
