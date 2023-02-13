@@ -41,7 +41,7 @@ void InitLogger() {
 
 nostd::shared_ptr<logs::Logger> get_logger() {
   auto provider = logs::Provider::GetLoggerProvider();
-  return provider->GetLogger("hashset_logger", "", "hashset");
+  return provider->GetLogger("otel_logger", "", "hashset");
 }
 
 void log(std::string /*msg*/) {

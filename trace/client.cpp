@@ -84,13 +84,14 @@ class AsyncTCPClient : public boost::noncopyable {
   void emulateLongComputationOp(unsigned int duration_sec, const std::string& raw_ip_address, unsigned short port_num,
                                 Callback callback, unsigned int request_id) {
 
-    // OPENTELEMETRY HERE
+
+    // Nothing special required here as we did not cross any thread boundaries.
 
     std::string span_name = "In first Method";
     auto span = Tracing::GetInstance().get_tracer()->StartSpan("first method");
+    // This now becomes the active span it is a child of the main span.
     auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
     auto context = span->GetContext();
-
 
     std::string context_ser = ExtractTraceInfoFromActiveSpan();
 
@@ -118,9 +119,6 @@ class AsyncTCPClient : public boost::noncopyable {
 
     session->m_sock.async_connect(session->m_ep, [context, this, session](const system::error_code& ec) {
 
-      trace_api::StartSpanOptions options;
-      options.kind = trace_api::SpanKind::kServer;
-      options.parent = context;
 
 
 
@@ -138,14 +136,19 @@ class AsyncTCPClient : public boost::noncopyable {
       }
 
 
-
+      trace_api::StartSpanOptions options;
+      options.kind = trace_api::SpanKind::kClient;
+      // We set the parent to the context that was passed in on thread startup
+      options.parent = context;
       std::string span_name = "In first worker";
       auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, options);
+      // We are now the active span
       auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
-      auto local_context = span->GetContext();
-
 
       std::string context_ser = ExtractTraceInfoFromActiveSpan();
+      std::string request = "EMULATE_LONG_CALC_OP ";
+      request += "-" + std::to_string(11) + "-" + context_ser + "-\n";
+      session->m_request = request;
 
 
       asio::async_write(session->m_sock, asio::buffer(session->m_request),
@@ -270,16 +273,20 @@ int main() {
 
 
   // This just creates us a context that we may use anywhere in the program
-  opentelemetry::context::Context  ctx{"version",opentelemetry::context::ContextValue(8.6)};
+  // We do not use this - just an example that you can use and create contexts for anything
+  // opentelemetry::context::Context  ctx{"version",opentelemetry::context::ContextValue(8.6)};
 
-  // This is now the Active Span
+
   opentelemetry::trace::StartSpanOptions options;
   options.kind = opentelemetry::trace::SpanKind::kClient;
   std::string span_name = "Start Main Program";
   auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"main", "startup"}}, options);
+  // calling this makes it the active span
   auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+
+
   // This is the new context but should not be required as it is in this thread local storage.
-  auto new_ctx = span->GetContext();
+  // auto new_ctx = span->GetContext();
 
   while(1) {
     try {
