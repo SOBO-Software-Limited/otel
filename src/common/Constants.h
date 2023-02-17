@@ -38,6 +38,7 @@ const std::string TRACE_ZILLIQA_PORT{"4318"};
 const double METRICS_VERSION{8.6};
 const std::string WARNING{"WARNING"};
 const std::string INFO{"INFO"};
+const std::string FATAL{"FATAL"};
 std::string TRACE_ZILLIQA_MASK{"ALL"};
 const std::string ZILLIQA_METRIC_FAMILY{"zilliqa_cpp"};
 };

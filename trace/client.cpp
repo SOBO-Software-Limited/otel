@@ -93,7 +93,8 @@ class AsyncTCPClient : public boost::noncopyable {
     auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
     auto context = span->GetContext();
 
-    std::string context_ser = ExtractTraceInfoFromActiveSpan();
+    std::string context_ser;
+    zil::trace::ExtractTraceInfoFromActiveSpan(context_ser);
 
 
     // Preparing the request string.
@@ -145,7 +146,8 @@ class AsyncTCPClient : public boost::noncopyable {
       // We are now the active span
       auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
 
-      std::string context_ser = ExtractTraceInfoFromActiveSpan();
+      std::string context_ser;
+      zil::trace::ExtractTraceInfoFromActiveSpan(context_ser);
       std::string request = "EMULATE_LONG_CALC_OP ";
       request += "-" + std::to_string(11) + "-" + context_ser + "-\n";
       session->m_request = request;
