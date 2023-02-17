@@ -13,12 +13,18 @@ find_package(re2 CONFIG REQUIRED)
 find_package(GTest CONFIG REQUIRED)
 
 
-
-add_executable( test_api   Test.cpp)
+add_executable(test_api Test.cpp)
 target_link_libraries(
-        test_api
-        Metrics
-        GTest::gtest_main
+    test_api
+    Metrics
+    GTest::gtest_main
 )
-target_include_directories(test_api PUBLIC ${PROJECT_SOURCE_DIR}/src  ${OPENTELEMETRY_CPP_INCLUDE_DIRS})
+target_include_directories(test_api PUBLIC ${PROJECT_SOURCE_DIR}/src ${OPENTELEMETRY_CPP_INCLUDE_DIRS})
 
+add_executable(test_trace2 Test2.cpp)
+target_link_libraries(
+    test_trace2
+    Metrics
+    GTest::gtest_main
+)
+target_include_directories(test_api PUBLIC ${PROJECT_SOURCE_DIR}/src ${OPENTELEMETRY_CPP_INCLUDE_DIRS})

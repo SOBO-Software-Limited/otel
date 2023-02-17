@@ -32,7 +32,7 @@ const std::string METRIC_ZILLIQA_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"
 const uint64_t METRIC_ZILLIQA_READER_EXPORT_MS{1000};
 const uint64_t METRIC_ZILLIQA_READER_TIMEOUT_MS{500};
 
-std::string TRACE_ZILLIQA_PROVIDER{"OTLPHTTP"};
+std::string TRACE_ZILLIQA_PROVIDER{"STDOUT"};
 const std::string TRACE_ZILLIQA_HOSTNAME{"localhost"};
 const std::string TRACE_ZILLIQA_PORT{"4318"};
 const double METRICS_VERSION{8.6};
