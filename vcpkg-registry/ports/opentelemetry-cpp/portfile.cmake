@@ -47,9 +47,10 @@ vcpkg_cmake_configure(
         -DWITH_EXAMPLES=OFF
         -DWITH_LOGS_PREVIEW=ON
         -DWITH_STL=ON
-        -DWITH_OTLP_GRPC=ON
+        -DENABLE_METRICS_EXEMPLAR_PREVIEW=ON
         ${FEATURE_OPTIONS}
 )
+
 
 vcpkg_cmake_install()
 vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/${PORT})

@@ -340,6 +340,29 @@ TEST_F(ApiTest, TestTraceChildSpans) {
   }
 }
 
+TEST_F(ApiTest, TestEexmplars) {
+  auto Topspan = START_SPAN(ACC_EVM, {});
+  SCOPED_SPAN(ACC_EVM, Topscope, Topspan);
+
+  std::vector<double> boundary{0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
+  Z_DBLHIST histogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "dblHistogram", boundary, "the first Histogram counter",
+                      "seconds");
+
+  char trace_id[32]       = {0};
+  char span_id[16]        = {0};
+  Topspan->GetContext().span_id().ToLowerBase16(span_id);
+  Topspan->GetContext().trace_id().ToLowerBase16(trace_id);
+
+
+  for (int i = 0; i < 100; i++) {
+
+    histogram.Record(((double)(rand() % 9)), {{"TraceId",trace_id},{"SpanId",span_id}});
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+}
+
+
 TEST_F(ApiTest, TestTrace) {
   auto Topspan = START_SPAN(ACC_EVM, {});
   SCOPED_SPAN(ACC_EVM, Topscope, Topspan);
