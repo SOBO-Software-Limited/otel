@@ -108,6 +108,10 @@ class DoubleHistogram {
     m_theCounter->Record(val, attr, context);
   }
 
+  void Record(double val, opentelemetry::context::Context  ctx ) {
+    m_theCounter->Record(val, ctx);
+  }
+
  private:
   std::vector<double> m_boundaries;
   doubleHistogram_t m_theCounter;
