@@ -47,8 +47,7 @@ vcpkg_cmake_configure(
         -DWITH_EXAMPLES=OFF
         -DWITH_LOGS_PREVIEW=ON
         -DWITH_STL=ON
-        -DENABLE_METRICS_EXEMPLAR_PREVIEW=ON
-        ${FEATURE_OPTIONS}
+d        ${FEATURE_OPTIONS}
 )
 
 

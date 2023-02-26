@@ -1,3 +1,7 @@
+#include <opentelemetry/trace/default_span.h>
+#include <opentelemetry/trace/span.h>
+#include <opentelemetry/trace/span_id.h>
+#include <opentelemetry/trace/trace_flags.h>
 #include <chrono>
 #include <map>
 #include <memory>
@@ -348,15 +352,17 @@ TEST_F(ApiTest, TestEexmplars) {
   Z_DBLHIST histogram(zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "dblHistogram", boundary, "the first Histogram counter",
                       "seconds");
 
-  char trace_id[32]       = {0};
-  char span_id[16]        = {0};
-  Topspan->GetContext().span_id().ToLowerBase16(span_id);
-  Topspan->GetContext().trace_id().ToLowerBase16(trace_id);
+  std::map<std::string, opentelemetry::context::ContextValue> map_test = {{"TraceId", Topspan }};
+  histogram.Record(((double)(rand() % 9)), opentelemetry::context::Context(map_test));
+
+
 
 
   for (int i = 0; i < 100; i++) {
 
-    histogram.Record(((double)(rand() % 9)), {{"TraceId",trace_id},{"SpanId",span_id}});
+    histogram.Record(((double)(rand() % 9)), opentelemetry::context::Context(map_test));
+
+
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 

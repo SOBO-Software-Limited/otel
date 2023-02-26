@@ -2,7 +2,7 @@ add_compile_options(-Wall)
 add_compile_options(-Werror)
 add_compile_options(-pedantic)
 add_compile_options(-Wextra)
-add_compile_options(-DENABLE_METRICS_EXEMPLAR_PREVIEW=1)
+
 
 
 find_package(CURL REQUIRED)
